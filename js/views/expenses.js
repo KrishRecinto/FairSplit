@@ -52,26 +52,32 @@ function buildExpenseForm(trip, rootContainer) {
     ])
   ]));
 
-  // Split type toggle
+  // Split type toggle — two tabs: Equal and Custom
   let splitType = 'equal';
-  const equalBtn = el('button', { className: 'active', textContent: 'Equal' });
-  const pctBtn = el('button', { textContent: 'By Percentage' });
-  const amtBtn = el('button', { textContent: 'By Amount' });
-  const toggle = el('div', { className: 'split-toggle' }, [equalBtn, pctBtn, amtBtn]);
+  const equalBtn = el('button', { className: 'active', textContent: 'Equal Split' });
+  const customBtn = el('button', { textContent: 'Custom Split' });
+  const toggle = el('div', { className: 'split-toggle' }, [equalBtn, customBtn]);
 
   const splitContainer = el('div', { id: 'splitContainer' });
 
-  function setActiveSplitType(type) {
-    splitType = type;
-    equalBtn.className = type === 'equal' ? 'active' : '';
-    pctBtn.className = type === 'custom' ? 'active' : '';
-    amtBtn.className = type === 'amount' ? 'active' : '';
-    renderSplitInputs(splitContainer, trip, splitType, amountInput);
-  }
+  // Track which people have been manually edited in custom mode
+  let manuallyEdited = new Set();
 
-  equalBtn.onclick = () => setActiveSplitType('equal');
-  pctBtn.onclick = () => setActiveSplitType('custom');
-  amtBtn.onclick = () => setActiveSplitType('amount');
+  equalBtn.onclick = () => {
+    splitType = 'equal';
+    manuallyEdited.clear();
+    equalBtn.className = 'active';
+    customBtn.className = '';
+    renderSplitInputs(splitContainer, trip, splitType, amountInput);
+  };
+
+  customBtn.onclick = () => {
+    splitType = 'custom';
+    manuallyEdited.clear();
+    customBtn.className = 'active';
+    equalBtn.className = '';
+    renderSplitInputs(splitContainer, trip, splitType, amountInput);
+  };
 
   card.appendChild(el('div', { className: 'form-group' }, [
     el('label', { textContent: 'Split' }), toggle
@@ -81,7 +87,19 @@ function buildExpenseForm(trip, rootContainer) {
   renderSplitInputs(splitContainer, trip, splitType, amountInput);
 
   amountInput.addEventListener('input', () => {
-    updateSplitAmounts(splitContainer, amountInput);
+    if (splitType === 'custom') {
+      // When total changes, redistribute among all (reset manual edits)
+      manuallyEdited.clear();
+      const totalAmount = parseFloat(amountInput.value) || 0;
+      const perPerson = trip.people.length > 0 ? totalAmount / trip.people.length : 0;
+      splitContainer.querySelectorAll('.split-amt').forEach(inp => {
+        inp.value = perPerson.toFixed(2);
+      });
+      updateSplitAmounts(splitContainer, amountInput);
+      updateCustomRemaining(splitContainer, amountInput);
+    } else {
+      updateSplitAmounts(splitContainer, amountInput);
+    }
   });
 
   // Remaining indicator
@@ -164,23 +182,8 @@ function renderSplitInputs(container, trip, splitType, amountInput) {
       });
       cb.addEventListener('change', () => updateEqualSplits(container, amountInput));
       row.appendChild(cb);
-    } else if (splitType === 'custom') {
-      const pctInput = el('input', {
-        type: 'number',
-        className: 'split-pct',
-        value: (100 / trip.people.length).toFixed(1),
-        min: '0',
-        max: '100',
-        step: '0.1',
-        'data-person-id': p.id
-      });
-      pctInput.addEventListener('input', () => {
-        updateCustomRemaining(container, splitType, amountInput);
-        updateSplitAmounts(container, amountInput);
-      });
-      row.appendChild(pctInput);
-      row.appendChild(el('span', { textContent: '%', style: { fontSize: '0.85rem', color: '#64748b' } }));
-    } else if (splitType === 'amount') {
+    } else {
+      // Custom mode — dollar amount inputs
       const amtInput = el('input', {
         type: 'number',
         className: 'split-amt',
@@ -190,10 +193,16 @@ function renderSplitInputs(container, trip, splitType, amountInput) {
         'data-person-id': p.id
       });
       amtInput.addEventListener('input', () => {
-        updateCustomRemaining(container, splitType, amountInput);
+        // Mark this person as manually edited
+        manuallyEdited.add(p.id);
+        redistributeRemaining(container, amountInput, manuallyEdited);
+      });
+      amtInput.addEventListener('focus', () => {
+        // Select all text on focus for easy editing
+        amtInput.select();
       });
       row.appendChild(amtInput);
-      row.appendChild(el('span', { textContent: trip.currency, style: { fontSize: '0.85rem', color: '#64748b' } }));
+      row.appendChild(el('span', { className: 'split-pct-label', 'data-pct-for': p.id }));
     }
 
     row.appendChild(el('span', { className: 'split-amount', 'data-amount-for': p.id }));
@@ -201,7 +210,9 @@ function renderSplitInputs(container, trip, splitType, amountInput) {
   });
 
   updateSplitAmounts(container, amountInput);
-  if (splitType === 'custom' || splitType === 'amount') updateCustomRemaining(container, splitType, amountInput);
+  if (splitType === 'custom') {
+    updateCustomRemaining(container, amountInput);
+  }
 }
 
 function updateEqualSplits(container, amountInput) {
@@ -212,7 +223,6 @@ function updateSplitAmounts(container, amountInput) {
   const amount = parseFloat(amountInput.value) || 0;
   const rows = container.querySelectorAll('.split-row');
   const checkboxes = container.querySelectorAll('.split-checkbox');
-  const pctInputs = container.querySelectorAll('.split-pct');
   const amtInputs = container.querySelectorAll('.split-amt');
 
   if (checkboxes.length > 0) {
@@ -228,62 +238,70 @@ function updateSplitAmounts(container, amountInput) {
         amountEl.textContent = formatMoney(0);
       }
     });
-  } else if (pctInputs.length > 0) {
-    // Percentage mode
-    rows.forEach(row => {
-      const pctInput = row.querySelector('.split-pct');
-      const amountEl = row.querySelector('.split-amount');
-      if (pctInput && amountEl) {
-        const pct = parseFloat(pctInput.value) || 0;
-        amountEl.textContent = formatMoney(amount * pct / 100);
-      }
-    });
   } else if (amtInputs.length > 0) {
-    // Amount mode — show percentage next to each
+    // Custom mode — show auto-calculated percentage next to each amount
     rows.forEach(row => {
       const amtInput = row.querySelector('.split-amt');
-      const amountEl = row.querySelector('.split-amount');
-      if (amtInput && amountEl) {
+      const pctLabel = row.querySelector('.split-pct-label');
+      if (amtInput && pctLabel) {
         const val = parseFloat(amtInput.value) || 0;
         const pct = amount > 0 ? (val / amount * 100) : 0;
-        amountEl.textContent = `(${pct.toFixed(1)}%)`;
+        pctLabel.textContent = `${pct.toFixed(1)}%`;
+        pctLabel.style.fontSize = '0.8rem';
+        pctLabel.style.color = 'var(--text-muted)';
+        pctLabel.style.minWidth = '50px';
+        pctLabel.style.textAlign = 'right';
       }
     });
   }
 }
 
-function updateCustomRemaining(container, splitType, amountInput) {
+// When a user edits one person's amount, auto-redistribute the remainder
+// evenly among the people who haven't been manually edited yet
+function redistributeRemaining(container, amountInput, manuallyEdited) {
+  const totalAmount = parseFloat(amountInput.value) || 0;
+  const amtInputs = Array.from(container.querySelectorAll('.split-amt'));
+
+  // Sum up manually edited amounts
+  let manualTotal = 0;
+  const unedited = [];
+  amtInputs.forEach(inp => {
+    const pid = inp.getAttribute('data-person-id');
+    if (manuallyEdited.has(pid)) {
+      manualTotal += parseFloat(inp.value) || 0;
+    } else {
+      unedited.push(inp);
+    }
+  });
+
+  // Distribute remaining among unedited people
+  const remaining = totalAmount - manualTotal;
+  const perUnedited = unedited.length > 0 ? Math.max(0, remaining / unedited.length) : 0;
+  unedited.forEach(inp => {
+    inp.value = perUnedited.toFixed(2);
+  });
+
+  updateSplitAmounts(container, amountInput);
+  updateCustomRemaining(container, amountInput);
+}
+
+function updateCustomRemaining(container, amountInput) {
   const rem = document.getElementById('splitRemaining');
   if (!rem) return;
 
-  if (splitType === 'custom') {
-    const pctInputs = container.querySelectorAll('.split-pct');
-    let total = 0;
-    pctInputs.forEach(inp => { total += parseFloat(inp.value) || 0; });
-    const diff = 100 - total;
-    if (Math.abs(diff) < 0.1) {
-      rem.textContent = 'Splits add up to 100%';
-      rem.className = 'split-remaining valid';
-    } else {
-      rem.textContent = `${diff > 0 ? diff.toFixed(1) + '% remaining' : Math.abs(diff).toFixed(1) + '% over'}`;
-      rem.className = 'split-remaining invalid';
-    }
-  } else if (splitType === 'amount') {
-    const totalAmount = parseFloat(amountInput.value) || 0;
-    const amtInputs = container.querySelectorAll('.split-amt');
-    let totalSplit = 0;
-    amtInputs.forEach(inp => { totalSplit += parseFloat(inp.value) || 0; });
-    const diff = totalAmount - totalSplit;
-    if (Math.abs(diff) < 0.01) {
-      rem.textContent = 'Amounts add up correctly';
-      rem.className = 'split-remaining valid';
-    } else {
-      rem.textContent = diff > 0
-        ? `${formatMoney(diff)} remaining to assign`
-        : `${formatMoney(Math.abs(diff))} over the total`;
-      rem.className = 'split-remaining invalid';
-    }
-    updateSplitAmounts(container, amountInput);
+  const totalAmount = parseFloat(amountInput.value) || 0;
+  const amtInputs = container.querySelectorAll('.split-amt');
+  let totalSplit = 0;
+  amtInputs.forEach(inp => { totalSplit += parseFloat(inp.value) || 0; });
+  const diff = totalAmount - totalSplit;
+  if (Math.abs(diff) < 0.01) {
+    rem.textContent = 'Amounts add up correctly';
+    rem.className = 'split-remaining valid';
+  } else {
+    rem.textContent = diff > 0
+      ? `${formatMoney(diff)} remaining to assign`
+      : `${formatMoney(Math.abs(diff))} over the total`;
+    rem.className = 'split-remaining invalid';
   }
 }
 
@@ -301,15 +319,8 @@ function getSplitsFromInputs(container, trip, splitType, amountInput) {
     checked.forEach(cb => {
       splits.push({ personId: cb.getAttribute('data-person-id'), percent: pct });
     });
-  } else if (splitType === 'custom') {
-    const pctInputs = container.querySelectorAll('.split-pct');
-    pctInputs.forEach(inp => {
-      const pct = parseFloat(inp.value) || 0;
-      if (pct > 0) {
-        splits.push({ personId: inp.getAttribute('data-person-id'), percent: pct });
-      }
-    });
-  } else if (splitType === 'amount') {
+  } else {
+    // Custom mode — convert dollar amounts to percentages
     const totalAmount = parseFloat(amountInput.value) || 0;
     if (totalAmount <= 0) {
       alert('Please enter a total amount first.');
@@ -424,23 +435,30 @@ function startEdit(expense, trip, rootContainer) {
       expense.splits.every(s => Math.abs(s.percent - expense.splits[0].percent) < 0.1);
 
     if (!isEqual) {
-      // Trigger percentage mode for editing custom splits
+      // Trigger custom mode for editing non-equal splits
       const toggle = document.querySelector('.split-toggle');
       if (toggle) {
-        toggle.children[1].click(); // percentage button
+        toggle.children[1].click(); // custom button
         setTimeout(() => {
+          const totalPct = expense.splits.reduce((s, sp) => s + sp.percent, 0);
+          // Set dollar amounts based on stored percentages
           expense.splits.forEach(sp => {
-            const input = document.querySelector(`.split-pct[data-person-id="${sp.personId}"]`);
-            if (input) input.value = sp.percent.toFixed(1);
-          });
-          // Set others to 0
-          document.querySelectorAll('.split-pct').forEach(inp => {
-            const pid = inp.getAttribute('data-person-id');
-            if (!expense.splits.find(s => s.personId === pid)) {
-              inp.value = '0';
+            const input = document.querySelector(`.split-amt[data-person-id="${sp.personId}"]`);
+            if (input) {
+              const amt = expense.amount * sp.percent / totalPct;
+              input.value = amt.toFixed(2);
             }
           });
-          updateCustomRemaining(document.getElementById('splitContainer'));
+          // Set others to 0
+          document.querySelectorAll('.split-amt').forEach(inp => {
+            const pid = inp.getAttribute('data-person-id');
+            if (!expense.splits.find(s => s.personId === pid)) {
+              inp.value = '0.00';
+            }
+          });
+          const splitContainer = document.getElementById('splitContainer');
+          updateSplitAmounts(splitContainer, document.getElementById('expAmount'));
+          updateCustomRemaining(splitContainer, document.getElementById('expAmount'));
         }, 50);
       }
     }
