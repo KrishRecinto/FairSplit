@@ -68,7 +68,7 @@ function buildExpenseForm(trip, rootContainer) {
     manuallyEdited.clear();
     equalBtn.className = 'active';
     customBtn.className = '';
-    renderSplitInputs(splitContainer, trip, splitType, amountInput);
+    renderSplitInputs(splitContainer, trip, splitType, amountInput, manuallyEdited);
   };
 
   customBtn.onclick = () => {
@@ -76,7 +76,7 @@ function buildExpenseForm(trip, rootContainer) {
     manuallyEdited.clear();
     customBtn.className = 'active';
     equalBtn.className = '';
-    renderSplitInputs(splitContainer, trip, splitType, amountInput);
+    renderSplitInputs(splitContainer, trip, splitType, amountInput, manuallyEdited);
   };
 
   card.appendChild(el('div', { className: 'form-group' }, [
@@ -84,7 +84,7 @@ function buildExpenseForm(trip, rootContainer) {
   ]));
 
   card.appendChild(splitContainer);
-  renderSplitInputs(splitContainer, trip, splitType, amountInput);
+  renderSplitInputs(splitContainer, trip, splitType, amountInput, manuallyEdited);
 
   amountInput.addEventListener('input', () => {
     if (splitType === 'custom') {
@@ -164,7 +164,7 @@ function buildExpenseForm(trip, rootContainer) {
   return card;
 }
 
-function renderSplitInputs(container, trip, splitType, amountInput) {
+function renderSplitInputs(container, trip, splitType, amountInput, manuallyEdited) {
   clearEl(container);
   const totalAmount = parseFloat(amountInput.value) || 0;
   const perPerson = trip.people.length > 0 ? totalAmount / trip.people.length : 0;
