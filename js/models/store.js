@@ -1,48 +1,58 @@
-const STORAGE_KEY = 'fairsplit_data';
+import * as fb from '../firebase.js';
 
-function defaultData() {
-  return { trips: [], activeTripId: null };
-}
+// In-memory cache so views can call load()/getActiveTrip() synchronously
+let cachedData = { trips: [], activeTripId: null, userId: null };
+
+// --- Sync API (used by views, reads from cache) ---
 
 export function load() {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    return raw ? JSON.parse(raw) : defaultData();
-  } catch {
-    return defaultData();
-  }
-}
-
-export function save(data) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+  return cachedData;
 }
 
 export function getActiveTrip() {
-  const data = load();
-  if (!data.activeTripId) return null;
-  return data.trips.find(t => t.id === data.activeTripId) || null;
+  if (!cachedData.activeTripId) return null;
+  return cachedData.trips.find(t => t.id === cachedData.activeTripId) || null;
 }
 
 export function setActiveTrip(tripId) {
-  const data = load();
-  data.activeTripId = tripId;
-  save(data);
+  cachedData.activeTripId = tripId;
+  localStorage.setItem('fairsplit_activeTripId', tripId);
 }
 
-export function saveTrip(trip) {
-  const data = load();
-  const idx = data.trips.findIndex(t => t.id === trip.id);
+// --- Async API (writes to Firestore) ---
+
+export async function saveTrip(trip) {
+  if (!cachedData.userId) return;
+  // Update cache immediately for responsiveness
+  const idx = cachedData.trips.findIndex(t => t.id === trip.id);
   trip.updatedAt = new Date().toISOString();
-  if (idx >= 0) data.trips[idx] = trip;
-  else data.trips.push(trip);
-  save(data);
+  if (idx >= 0) cachedData.trips[idx] = trip;
+  else cachedData.trips.push(trip);
+  // Write to Firestore
+  await fb.saveTrip(trip, cachedData.userId);
 }
 
-export function deleteTrip(tripId) {
-  const data = load();
-  data.trips = data.trips.filter(t => t.id !== tripId);
-  if (data.activeTripId === tripId) {
-    data.activeTripId = data.trips.length ? data.trips[0].id : null;
+export async function deleteTrip(tripId) {
+  cachedData.trips = cachedData.trips.filter(t => t.id !== tripId);
+  if (cachedData.activeTripId === tripId) {
+    cachedData.activeTripId = cachedData.trips.length ? cachedData.trips[0].id : null;
   }
-  save(data);
+  await fb.deleteTrip(tripId);
+}
+
+// --- Init: load from Firestore and set up real-time sync ---
+
+export async function initStore(userId) {
+  cachedData.userId = userId;
+  cachedData.activeTripId = localStorage.getItem('fairsplit_activeTripId') || null;
+  // Initial load
+  cachedData.trips = await fb.loadTrips(userId);
+}
+
+// Set up real-time listener (returns unsubscribe function)
+export function onTripsChange(userId, callback) {
+  return fb.onTripsSnapshot(userId, (trips) => {
+    cachedData.trips = trips;
+    callback(trips);
+  });
 }
