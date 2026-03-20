@@ -634,6 +634,81 @@ body {
 .flex { display: flex; }
 .flex-between { display: flex; justify-content: space-between; align-items: center; }
 
+/* People chips input */
+.person-input-row {
+  display: flex;
+  gap: 8px;
+}
+
+.person-input-row input {
+  flex: 1;
+}
+
+.btn-add-person {
+  width: 42px;
+  height: 42px;
+  padding: 0;
+  font-size: 1.3rem;
+  font-weight: 600;
+  flex-shrink: 0;
+  border-radius: 8px;
+}
+
+.people-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.person-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  background: var(--primary-bg);
+  color: var(--primary);
+  border-radius: 20px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  animation: chipIn 0.2s ease;
+}
+
+@keyframes chipIn {
+  from { opacity: 0; transform: scale(0.8); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.chip-remove {
+  background: none;
+  border: none;
+  color: var(--primary);
+  font-size: 1.1rem;
+  cursor: pointer;
+  padding: 0 2px;
+  line-height: 1;
+  opacity: 0.6;
+  transition: opacity 0.15s;
+}
+
+.chip-remove:hover {
+  opacity: 1;
+}
+
+.people-hint {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  margin-top: 8px;
+}
+
+.people-hint.valid {
+  color: var(--success);
+}
+
+.people-hint.invalid {
+  color: var(--danger);
+}
+
 /* Responsive */
 @media (max-width: 640px) {
   .tab-bar {

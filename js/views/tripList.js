@@ -61,22 +61,90 @@ function buildCreateForm(onTripSelected) {
   currencies.forEach(c => {
     currencyInput.appendChild(el('option', { value: c.symbol, textContent: c.label }));
   });
-  const peopleInput = el('input', { type: 'text', placeholder: 'Alice, Bob, Charlie', id: 'tripPeople' });
+  // People — chip-based input
+  const peopleNames = [];
+  const chipsContainer = el('div', { className: 'people-chips', id: 'peopleChips' });
+  const peopleHint = el('div', { className: 'people-hint', id: 'peopleHint', textContent: 'Add at least 2 people' });
+
+  const personInput = el('input', { type: 'text', placeholder: 'Type a name...', id: 'personInput' });
+  const addPersonBtn = el('button', {
+    className: 'btn btn-primary btn-add-person',
+    textContent: '+',
+    onClick: () => addPerson()
+  });
+
+  const personRow = el('div', { className: 'person-input-row' }, [personInput, addPersonBtn]);
+
+  // Add person on Enter key
+  personInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      addPerson();
+    }
+  });
+
+  function addPerson() {
+    const name = personInput.value.trim();
+    if (!name) { personInput.focus(); return; }
+    if (peopleNames.includes(name)) {
+      personInput.value = '';
+      personInput.focus();
+      return;
+    }
+    peopleNames.push(name);
+    personInput.value = '';
+    personInput.focus();
+    renderChips();
+  }
+
+  function removePerson(name) {
+    const idx = peopleNames.indexOf(name);
+    if (idx >= 0) peopleNames.splice(idx, 1);
+    renderChips();
+  }
+
+  function renderChips() {
+    clearEl(chipsContainer);
+    peopleNames.forEach(name => {
+      const chip = el('span', { className: 'person-chip' }, [
+        el('span', { textContent: name }),
+        el('button', {
+          className: 'chip-remove',
+          textContent: '\u00d7',
+          onClick: () => removePerson(name)
+        })
+      ]);
+      chipsContainer.appendChild(chip);
+    });
+    // Update hint
+    const count = peopleNames.length;
+    if (count === 0) {
+      peopleHint.textContent = 'Add at least 2 people';
+      peopleHint.className = 'people-hint';
+    } else if (count === 1) {
+      peopleHint.textContent = 'Add at least 1 more person';
+      peopleHint.className = 'people-hint';
+    } else {
+      peopleHint.textContent = `${count} people added`;
+      peopleHint.className = 'people-hint valid';
+    }
+  }
 
   form.appendChild(el('div', { className: 'form-group' }, [
     el('label', { textContent: 'Trip Name' }),
     nameInput
   ]));
 
-  form.appendChild(el('div', { className: 'form-row' }, [
-    el('div', { className: 'form-group' }, [
-      el('label', { textContent: 'Currency' }),
-      currencyInput
-    ]),
-    el('div', { className: 'form-group' }, [
-      el('label', { textContent: 'People (comma-separated)' }),
-      peopleInput
-    ])
+  form.appendChild(el('div', { className: 'form-group' }, [
+    el('label', { textContent: 'Currency' }),
+    currencyInput
+  ]));
+
+  form.appendChild(el('div', { className: 'form-group' }, [
+    el('label', { textContent: 'People' }),
+    personRow,
+    chipsContainer,
+    peopleHint
   ]));
 
   const createBtn = el('button', {
@@ -85,18 +153,17 @@ function buildCreateForm(onTripSelected) {
     onClick: () => {
       const name = nameInput.value.trim();
       const currency = currencyInput.value.trim() || '$';
-      const peopleStr = peopleInput.value.trim();
 
       if (!name) { nameInput.focus(); return; }
-      if (!peopleStr) { peopleInput.focus(); return; }
-
-      const trip = createTrip(name, currency);
-      const names = peopleStr.split(',').map(n => n.trim()).filter(Boolean);
-      if (names.length < 2) {
-        alert('Please add at least 2 people.');
+      if (peopleNames.length < 2) {
+        personInput.focus();
+        peopleHint.textContent = 'Please add at least 2 people';
+        peopleHint.className = 'people-hint invalid';
         return;
       }
-      trip.people = names.map(n => createPerson(n));
+
+      const trip = createTrip(name, currency);
+      trip.people = peopleNames.map(n => createPerson(n));
       store.saveTrip(trip);
       store.setActiveTrip(trip.id);
       onTripSelected(trip);
