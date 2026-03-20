@@ -17,10 +17,20 @@
     <div class="header-right" style="display:flex;align-items:center;gap:10px;">
       <div class="trip-selector" id="tripSelector" style="display:none;">
         <select id="tripDropdown"></select>
+        <button class="add-member-btn" id="addMemberBtn" title="Add member">+</button>
       </div>
       <button class="theme-toggle" id="themeToggle" title="Toggle dark mode">&#9790;</button>
     </div>
   </header>
+
+  <div class="add-member-panel" id="addMemberPanel" style="display:none;">
+    <div class="add-member-inner">
+      <input type="text" id="newMemberInput" placeholder="Enter name...">
+      <button class="btn btn-primary btn-sm" id="confirmAddMember">Add</button>
+      <button class="btn btn-secondary btn-sm" id="cancelAddMember">&times;</button>
+    </div>
+    <div class="add-member-chips" id="memberChips"></div>
+  </div>
 
   <nav class="tab-bar" id="tabBar" style="display:none;">
     <button class="tab active" data-view="expenses">

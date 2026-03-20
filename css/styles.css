@@ -120,6 +120,72 @@ body {
   background: white;
 }
 
+/* Add member button */
+.trip-selector {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.add-member-btn {
+  background: rgba(255,255,255,0.15);
+  border: 1px solid rgba(255,255,255,0.2);
+  color: white;
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 1.1rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s;
+  flex-shrink: 0;
+}
+
+.add-member-btn:hover {
+  background: rgba(255,255,255,0.25);
+}
+
+/* Add member panel */
+.add-member-panel {
+  background: var(--card);
+  border-bottom: 1px solid var(--border);
+  padding: 10px 20px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+}
+
+.add-member-inner {
+  display: flex;
+  gap: 8px;
+  max-width: 700px;
+  margin: 0 auto;
+}
+
+.add-member-inner input {
+  flex: 1;
+  padding: 7px 12px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 0.9rem;
+  background: var(--bg);
+  color: var(--text);
+}
+
+.add-member-inner input:focus {
+  outline: none;
+  border-color: var(--primary);
+}
+
+.add-member-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  max-width: 700px;
+  margin: 8px auto 0;
+}
+
 /* Tab Bar */
 .tab-bar {
   display: flex;

@@ -1,5 +1,6 @@
 import { showView } from './utils/dom.js';
 import * as store from './models/store.js';
+import { createPerson } from './models/person.js';
 import { renderTripList, populateTripDropdown } from './views/tripList.js';
 import { renderExpenses } from './views/expenses.js';
 import { renderDashboard } from './views/dashboard.js';
@@ -37,8 +38,74 @@ function initTheme() {
   });
 }
 
+function initAddMember() {
+  const btn = document.getElementById('addMemberBtn');
+  const panel = document.getElementById('addMemberPanel');
+  const input = document.getElementById('newMemberInput');
+  const confirmBtn = document.getElementById('confirmAddMember');
+  const cancelBtn = document.getElementById('cancelAddMember');
+  const chipsEl = document.getElementById('memberChips');
+
+  btn.addEventListener('click', () => {
+    const isOpen = panel.style.display !== 'none';
+    panel.style.display = isOpen ? 'none' : 'block';
+    if (!isOpen) {
+      input.value = '';
+      input.focus();
+      renderMemberChips();
+    }
+  });
+
+  cancelBtn.addEventListener('click', () => {
+    panel.style.display = 'none';
+  });
+
+  function addMember() {
+    const name = input.value.trim();
+    if (!name) { input.focus(); return; }
+
+    const trip = store.getActiveTrip();
+    if (!trip) return;
+
+    // Check for duplicate
+    if (trip.people.some(p => p.name.toLowerCase() === name.toLowerCase())) {
+      input.value = '';
+      input.focus();
+      return;
+    }
+
+    trip.people.push(createPerson(name));
+    store.saveTrip(trip);
+    input.value = '';
+    input.focus();
+    renderMemberChips();
+    switchToView(currentView); // Refresh current view
+  }
+
+  confirmBtn.addEventListener('click', addMember);
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      addMember();
+    }
+  });
+
+  function renderMemberChips() {
+    chipsEl.innerHTML = '';
+    const trip = store.getActiveTrip();
+    if (!trip) return;
+    trip.people.forEach(p => {
+      const chip = document.createElement('span');
+      chip.className = 'person-chip';
+      chip.textContent = p.name;
+      chipsEl.appendChild(chip);
+    });
+  }
+}
+
 function init() {
   initTheme();
+  initAddMember();
   const data = store.load();
 
   if (data.activeTripId && data.trips.find(t => t.id === data.activeTripId)) {
