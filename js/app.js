@@ -80,38 +80,48 @@ function initAuth() {
         }
       };
 
-      // Init store with Firestore data
-      await store.initStore(user.uid);
+      try {
+        // Init store with Firestore data
+        await store.initStore(user.uid);
 
-      // Set up real-time sync
-      unsubTrips = store.onTripsChange(user.uid, () => {
-        // When trips update from another device, refresh current view
-        if (currentView === 'trips') {
-          showTripList();
+        // Set up real-time sync
+        unsubTrips = store.onTripsChange(user.uid, () => {
+          // When trips update from another device, refresh current view
+          if (currentView === 'trips') {
+            showTripList();
+          } else {
+            const trip = store.getActiveTrip();
+            if (trip) switchToView(currentView);
+          }
+        });
+
+        // Check for ?join=CODE in URL
+        const joinCode = new URLSearchParams(window.location.search).get('join');
+        if (joinCode) {
+          // Clear the URL parameter
+          window.history.replaceState({}, '', window.location.pathname);
+          try {
+            const result = await store.joinTripByCode(joinCode);
+            if (result.success) {
+              store.setActiveTrip(result.trip.id);
+              enterTripMode(result.trip);
+              return;
+            }
+          } catch (joinErr) {
+            console.error('Join trip error:', joinErr);
+          }
+        }
+
+        // Show app
+        const data = store.load();
+        if (data.activeTripId && data.trips.find(t => t.id === data.activeTripId)) {
+          enterTripMode(store.getActiveTrip());
         } else {
-          const trip = store.getActiveTrip();
-          if (trip) switchToView(currentView);
+          showTripList();
         }
-      });
-
-      // Check for ?join=CODE in URL
-      const joinCode = new URLSearchParams(window.location.search).get('join');
-      if (joinCode) {
-        // Clear the URL parameter
-        window.history.replaceState({}, '', window.location.pathname);
-        const result = await store.joinTripByCode(joinCode);
-        if (result.success) {
-          store.setActiveTrip(result.trip.id);
-          enterTripMode(result.trip);
-          return;
-        }
-      }
-
-      // Show app
-      const data = store.load();
-      if (data.activeTripId && data.trips.find(t => t.id === data.activeTripId)) {
-        enterTripMode(store.getActiveTrip());
-      } else {
+      } catch (err) {
+        console.error('Init error:', err);
+        // Still show trip list even if init partially fails
         showTripList();
       }
     } else {

@@ -63,7 +63,12 @@ export async function initStore(userId) {
   cachedData.userId = userId;
   cachedData.activeTripId = localStorage.getItem('fairsplit_activeTripId') || null;
   // Initial load
-  cachedData.trips = await fb.loadTrips(userId);
+  try {
+    cachedData.trips = await fb.loadTrips(userId);
+  } catch (err) {
+    console.error('Failed to load trips from Firestore:', err);
+    cachedData.trips = [];
+  }
 }
 
 // Set up real-time listener (returns unsubscribe function)
