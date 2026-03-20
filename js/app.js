@@ -134,7 +134,8 @@ function initAuth() {
         showTripList();
       }
     } else {
-      // Logged out
+      // Logged out — show login, hide everything else
+      loadingScreen.style.display = 'none';
       loginScreen.style.display = 'flex';
       content.style.display = 'none';
       userBtn.style.display = 'none';

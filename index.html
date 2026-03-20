@@ -56,8 +56,8 @@
     </button>
   </nav>
 
-  <!-- Login screen -->
-  <div class="login-screen" id="loginScreen">
+  <!-- Login screen (hidden by default — shown only if not signed in) -->
+  <div class="login-screen" id="loginScreen" style="display:none;">
     <div class="login-card">
       <div class="login-icon">$</div>
       <h2>Welcome to FairSplit</h2>
@@ -69,10 +69,10 @@
     </div>
   </div>
 
-  <!-- Loading spinner -->
-  <div class="loading-screen" id="loadingScreen" style="display:none;">
+  <!-- Loading spinner (shown by default — acts as initial state) -->
+  <div class="loading-screen" id="loadingScreen" style="display:flex;">
     <div class="spinner"></div>
-    <p>Loading your trips...</p>
+    <p>Loading...</p>
   </div>
 
   <main class="content" id="content" style="display:none;">
