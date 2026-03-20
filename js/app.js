@@ -135,7 +135,7 @@ function showTripList() {
 
 function enterTripMode(trip) {
   document.getElementById('tabBar').style.display = 'flex';
-  document.getElementById('tripSelector').style.display = 'block';
+  document.getElementById('tripSelector').style.display = 'flex';
 
   populateTripDropdown(document.getElementById('tripDropdown'), (selectedTrip) => {
     if (selectedTrip) {
