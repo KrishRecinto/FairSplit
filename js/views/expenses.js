@@ -181,7 +181,7 @@ function renderSplitInputs(container, trip, splitType, amountInput, manuallyEdit
       el('span', { textContent: p.name })
     ]);
     if (p.id === payerId) {
-      nameContainer.appendChild(el('span', { className: 'paid-badge', textContent: 'paid' }));
+      nameContainer.appendChild(el('span', { className: 'paid-badge', textContent: 'paid by' }));
     }
     row.appendChild(nameContainer);
 

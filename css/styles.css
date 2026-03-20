@@ -320,14 +320,8 @@ body {
 }
 
 .paid-badge {
-  display: inline-block;
-  padding: 1px 6px;
-  border-radius: 4px;
-  font-size: 0.65rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.3px;
-  background: var(--success-bg);
+  font-size: 0.6rem;
+  font-weight: 500;
   color: var(--success);
 }
 
