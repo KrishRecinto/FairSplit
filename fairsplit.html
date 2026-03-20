@@ -1,0 +1,1949 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FairSplit — Trip Expense Splitter</title>
+  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <style>
+:root {
+  --primary: #4f46e5;
+  --primary-light: #818cf8;
+  --primary-bg: #eef2ff;
+  --success: #16a34a;
+  --success-bg: #dcfce7;
+  --danger: #dc2626;
+  --danger-bg: #fee2e2;
+  --warning: #f59e0b;
+  --warning-bg: #fef3c7;
+  --text: #1e293b;
+  --text-muted: #64748b;
+  --bg: #f8fafc;
+  --card: #ffffff;
+  --border: #e2e8f0;
+  --radius: 10px;
+  --shadow: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.06);
+  --shadow-md: 0 4px 6px rgba(0,0,0,0.07), 0 2px 4px rgba(0,0,0,0.06);
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.5;
+  min-height: 100dvh;
+}
+
+.app-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 20px;
+  background: var(--primary);
+  color: white;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.logo {
+  font-size: 1.3rem;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+}
+
+.header-right select {
+  padding: 6px 10px;
+  border-radius: 6px;
+  border: 1px solid rgba(255,255,255,0.3);
+  background: rgba(255,255,255,0.15);
+  color: white;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.header-right select option {
+  color: var(--text);
+  background: white;
+}
+
+.tab-bar {
+  display: flex;
+  background: var(--card);
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 49px;
+  z-index: 99;
+}
+
+.tab {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 10px 8px 8px;
+  border: none;
+  background: none;
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  cursor: pointer;
+  transition: color 0.2s, border-color 0.2s;
+  border-bottom: 2px solid transparent;
+}
+
+.tab:hover { color: var(--primary); }
+.tab.active {
+  color: var(--primary);
+  border-bottom-color: var(--primary);
+}
+
+.tab-icon { font-size: 1.2rem; font-weight: 600; }
+
+.content {
+  max-width: 700px;
+  margin: 0 auto;
+  padding: 16px;
+}
+
+.view { animation: fadeIn 0.2s ease; }
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px;
+  margin-bottom: 12px;
+  box-shadow: var(--shadow);
+}
+
+.card-title {
+  font-size: 1rem;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.form-group { margin-bottom: 14px; }
+
+.form-group label {
+  display: block;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--text-muted);
+  margin-bottom: 4px;
+}
+
+.form-group input,
+.form-group select,
+.form-group textarea {
+  width: 100%;
+  padding: 9px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 0.95rem;
+  color: var(--text);
+  background: var(--card);
+  transition: border-color 0.2s;
+}
+
+.form-group input:focus,
+.form-group select:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px var(--primary-bg);
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 9px 18px;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.1s;
+}
+
+.btn:active { transform: scale(0.97); }
+
+.btn-primary { background: var(--primary); color: white; }
+.btn-primary:hover { background: #4338ca; }
+
+.btn-secondary { background: var(--primary-bg); color: var(--primary); }
+.btn-secondary:hover { background: #dde4ff; }
+
+.btn-danger { background: var(--danger-bg); color: var(--danger); }
+.btn-danger:hover { background: #fecaca; }
+
+.btn-success { background: var(--success-bg); color: var(--success); }
+
+.btn-sm { padding: 5px 12px; font-size: 0.8rem; }
+.btn-block { width: 100%; }
+
+.split-toggle {
+  display: flex;
+  background: var(--bg);
+  border-radius: 8px;
+  padding: 3px;
+  margin-bottom: 12px;
+}
+
+.split-toggle button {
+  flex: 1;
+  padding: 7px 12px;
+  border: none;
+  border-radius: 6px;
+  background: none;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.split-toggle button.active {
+  background: var(--card);
+  color: var(--primary);
+  box-shadow: var(--shadow);
+}
+
+.split-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--bg);
+}
+
+.split-row:last-child { border-bottom: none; }
+
+.split-row .person-name { flex: 1; font-size: 0.9rem; }
+
+.split-row input[type="number"] {
+  width: 80px;
+  padding: 6px 8px;
+  text-align: right;
+}
+
+.split-row .split-amount {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  min-width: 70px;
+  text-align: right;
+}
+
+.split-row input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--primary);
+}
+
+.split-remaining {
+  font-size: 0.85rem;
+  text-align: right;
+  padding: 6px 0;
+  font-weight: 500;
+}
+
+.split-remaining.valid { color: var(--success); }
+.split-remaining.invalid { color: var(--danger); }
+
+.expense-item {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  margin-bottom: 8px;
+  overflow: hidden;
+  box-shadow: var(--shadow);
+}
+
+.expense-header {
+  display: flex;
+  align-items: center;
+  padding: 12px 14px;
+  cursor: pointer;
+  gap: 12px;
+}
+
+.expense-header:hover { background: var(--bg); }
+.expense-info { flex: 1; }
+.expense-desc { font-weight: 500; font-size: 0.95rem; }
+
+.expense-meta {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+.expense-amount {
+  font-weight: 600;
+  font-size: 1.05rem;
+  color: var(--primary);
+}
+
+.expense-details {
+  padding: 0 14px 12px;
+  border-top: 1px solid var(--border);
+  display: none;
+}
+
+.expense-details.open { display: block; }
+
+.expense-detail-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 6px 0;
+  font-size: 0.85rem;
+  border-bottom: 1px solid var(--bg);
+}
+
+.expense-actions { display: flex; gap: 8px; padding-top: 10px; }
+
+.category-tag {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 0.7rem;
+  font-weight: 500;
+  background: var(--primary-bg);
+  color: var(--primary);
+  text-transform: capitalize;
+}
+
+.summary-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.person-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px;
+  box-shadow: var(--shadow);
+}
+
+.person-card .name { font-weight: 600; font-size: 1rem; margin-bottom: 8px; }
+
+.person-card .stat {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.85rem;
+  padding: 3px 0;
+}
+
+.person-card .stat-value { font-weight: 500; }
+
+.person-card .net {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.net.positive { color: var(--success); }
+.net.negative { color: var(--danger); }
+
+.bar-container {
+  height: 8px;
+  background: var(--bg);
+  border-radius: 4px;
+  margin-top: 8px;
+  overflow: hidden;
+}
+
+.bar-fill {
+  height: 100%;
+  background: var(--primary);
+  border-radius: 4px;
+  transition: width 0.4s ease;
+}
+
+.settlement-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  margin-bottom: 8px;
+  box-shadow: var(--shadow);
+}
+
+.settlement-card.paid {
+  opacity: 0.5;
+  text-decoration: line-through;
+}
+
+.settlement-arrow {
+  color: var(--primary);
+  font-size: 1.2rem;
+  font-weight: bold;
+}
+
+.settlement-amount {
+  margin-left: auto;
+  font-weight: 700;
+  font-size: 1.1rem;
+  color: var(--primary);
+}
+
+.chart-container {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px;
+  margin-bottom: 16px;
+  box-shadow: var(--shadow);
+}
+
+.chart-container canvas { max-height: 300px; }
+
+.data-table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+
+.data-table th {
+  text-align: left;
+  padding: 8px 10px;
+  border-bottom: 2px solid var(--border);
+  color: var(--text-muted);
+  font-weight: 500;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.data-table td { padding: 10px; border-bottom: 1px solid var(--border); }
+.data-table tr:last-child td { border-bottom: none; }
+
+.file-drop {
+  border: 2px dashed var(--border);
+  border-radius: var(--radius);
+  padding: 32px;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 0.2s, background 0.2s;
+  margin-bottom: 16px;
+}
+
+.file-drop:hover,
+.file-drop.dragover {
+  border-color: var(--primary);
+  background: var(--primary-bg);
+}
+
+.file-drop input[type="file"] { display: none; }
+
+.file-drop-text { font-size: 0.95rem; color: var(--text-muted); }
+.file-drop-text strong { color: var(--primary); }
+
+.validation-msg {
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  margin-bottom: 8px;
+}
+
+.validation-msg.error { background: var(--danger-bg); color: var(--danger); }
+.validation-msg.success { background: var(--success-bg); color: var(--success); }
+
+.empty-state { text-align: center; padding: 48px 20px; color: var(--text-muted); }
+.empty-state-icon { font-size: 3rem; margin-bottom: 12px; }
+.empty-state h3 { font-size: 1.1rem; color: var(--text); margin-bottom: 6px; }
+.empty-state p { font-size: 0.9rem; margin-bottom: 16px; }
+
+.section-title {
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-muted);
+  margin: 20px 0 10px;
+}
+
+.text-center { text-align: center; }
+.text-muted { color: var(--text-muted); }
+.mt-8 { margin-top: 8px; }
+.mt-16 { margin-top: 16px; }
+.mb-8 { margin-bottom: 8px; }
+.mb-16 { margin-bottom: 16px; }
+.gap-8 { gap: 8px; }
+.flex { display: flex; }
+.flex-between { display: flex; justify-content: space-between; align-items: center; }
+
+@media (max-width: 640px) {
+  .tab-bar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    top: auto;
+    border-top: 1px solid var(--border);
+    border-bottom: none;
+    box-shadow: 0 -2px 8px rgba(0,0,0,0.06);
+    z-index: 100;
+  }
+
+  .content { padding-bottom: 80px; }
+  .form-row { grid-template-columns: 1fr; }
+  .summary-cards { grid-template-columns: 1fr; }
+}
+
+[data-theme="dark"] {
+  --primary: #818cf8;
+  --primary-light: #a5b4fc;
+  --primary-bg: #1e1b4b;
+  --success: #4ade80;
+  --success-bg: #052e16;
+  --danger: #f87171;
+  --danger-bg: #450a0a;
+  --warning: #fbbf24;
+  --warning-bg: #451a03;
+  --text: #e2e8f0;
+  --text-muted: #94a3b8;
+  --bg: #0f172a;
+  --card: #1e293b;
+  --border: #334155;
+  --shadow: 0 1px 3px rgba(0,0,0,0.3), 0 1px 2px rgba(0,0,0,0.2);
+  --shadow-md: 0 4px 6px rgba(0,0,0,0.3), 0 2px 4px rgba(0,0,0,0.2);
+}
+
+[data-theme="dark"] .app-header {
+  background: #1e1b4b;
+}
+
+[data-theme="dark"] .tab-bar {
+  background: #1e293b;
+}
+
+[data-theme="dark"] .form-group input,
+[data-theme="dark"] .form-group select {
+  background: #0f172a;
+  color: var(--text);
+}
+
+[data-theme="dark"] .split-toggle {
+  background: #0f172a;
+}
+
+.theme-toggle {
+  background: rgba(255,255,255,0.15);
+  border: 1px solid rgba(255,255,255,0.2);
+  color: white;
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 1.1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s;
+  flex-shrink: 0;
+}
+
+.theme-toggle:hover {
+  background: rgba(255,255,255,0.25);
+}
+  </style>
+</head>
+<body>
+  <header class="app-header">
+    <div class="header-left">
+      <h1 class="logo">FairSplit</h1>
+    </div>
+    <div class="header-right" style="display:flex;align-items:center;gap:10px;">
+      <div class="trip-selector" id="tripSelector" style="display:none;">
+        <select id="tripDropdown"></select>
+      </div>
+      <button class="theme-toggle" id="themeToggle" title="Toggle dark mode">&#9790;</button>
+    </div>
+  </header>
+
+  <nav class="tab-bar" id="tabBar" style="display:none;">
+    <button class="tab active" data-view="expenses">
+      <span class="tab-icon">$</span>
+      <span class="tab-label">Costs</span>
+    </button>
+    <button class="tab" data-view="dashboard">
+      <span class="tab-icon">&#9776;</span>
+      <span class="tab-label">Dashboard</span>
+    </button>
+    <button class="tab" data-view="settle">
+      <span class="tab-icon">&#8644;</span>
+      <span class="tab-label">Settle</span>
+    </button>
+    <button class="tab" data-view="import">
+      <span class="tab-icon">&#8645;</span>
+      <span class="tab-label">Import</span>
+    </button>
+  </nav>
+
+  <main class="content" id="content">
+    <div id="view-trips" class="view"></div>
+    <div id="view-expenses" class="view" style="display:none;"></div>
+    <div id="view-dashboard" class="view" style="display:none;"></div>
+    <div id="view-settle" class="view" style="display:none;"></div>
+    <div id="view-import" class="view" style="display:none;"></div>
+  </main>
+
+  <script>
+// === Dom utilities ===
+var Dom = (function() {
+  function el(tag, attrs, children) {
+    attrs = attrs || {};
+    children = children || [];
+    var element = document.createElement(tag);
+    for (var _i = 0, _a = Object.entries(attrs); _i < _a.length; _i++) {
+      var pair = _a[_i];
+      var key = pair[0], val = pair[1];
+      if (key === 'className') element.className = val;
+      else if (key === 'textContent') element.textContent = val;
+      else if (key === 'innerHTML') element.innerHTML = val;
+      else if (key.startsWith('on')) element.addEventListener(key.slice(2).toLowerCase(), val);
+      else if (key === 'style' && typeof val === 'object') Object.assign(element.style, val);
+      else element.setAttribute(key, val);
+    }
+    var childArray = Array.isArray(children) ? children : [children];
+    for (var _j = 0; _j < childArray.length; _j++) {
+      var child = childArray[_j];
+      if (typeof child === 'string') element.appendChild(document.createTextNode(child));
+      else if (child) element.appendChild(child);
+    }
+    return element;
+  }
+
+  function generateId(prefix) {
+    prefix = prefix || 'id';
+    return prefix + '_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7);
+  }
+
+  function clearEl(element) {
+    element.innerHTML = '';
+  }
+
+  function showView(viewId) {
+    document.querySelectorAll('.view').forEach(function(v) { v.style.display = 'none'; });
+    var view = document.getElementById('view-' + viewId);
+    if (view) view.style.display = 'block';
+  }
+
+  function todayStr() {
+    return new Date().toISOString().split('T')[0];
+  }
+
+  return { el: el, generateId: generateId, clearEl: clearEl, showView: showView, todayStr: todayStr };
+})();
+
+// === Currency utilities ===
+var Currency = (function() {
+  function formatMoney(amount, currency) {
+    currency = currency || '$';
+    return currency + Math.abs(amount).toFixed(2);
+  }
+
+  function computeSplitAmounts(totalAmount, splits) {
+    if (!splits.length) return [];
+    var raw = splits.map(function(s) { return totalAmount * s.percent / 100; });
+    var rounded = raw.map(function(v) { return Math.floor(v * 100) / 100; });
+    var remainder = Math.round((totalAmount - rounded.reduce(function(a, b) { return a + b; }, 0)) * 100);
+
+    var indices = rounded
+      .map(function(_, i) { return i; })
+      .sort(function(a, b) { return (raw[b] - rounded[b]) - (raw[a] - rounded[a]); });
+
+    for (var i = 0; i < remainder && i < indices.length; i++) {
+      rounded[indices[i]] = Math.round((rounded[indices[i]] + 0.01) * 100) / 100;
+    }
+    return rounded;
+  }
+
+  return { formatMoney: formatMoney, computeSplitAmounts: computeSplitAmounts };
+})();
+
+// === CSV utilities ===
+var Csv = (function() {
+  function parseExpenseCsv(csvText, trip) {
+    var results = Papa.parse(csvText, { header: true, skipEmptyLines: true });
+    var expenses = [];
+    var errors = [];
+
+    results.data.forEach(function(row, i) {
+      var lineNum = i + 2;
+      var desc = (row.description || '').trim();
+      var amount = parseFloat(row.amount);
+      var date = (row.date || '').trim();
+      var category = (row.category || 'other').trim().toLowerCase();
+      var paidByName = (row.paid_by || '').trim();
+      var splitType = (row.split_type || 'equal').trim().toLowerCase();
+      var splitDetails = (row.split_details || '').trim();
+
+      if (!desc) { errors.push('Row ' + lineNum + ': Missing description'); return; }
+      if (isNaN(amount) || amount <= 0) { errors.push('Row ' + lineNum + ': Invalid amount'); return; }
+      if (!paidByName) { errors.push('Row ' + lineNum + ': Missing paid_by'); return; }
+
+      var payer = trip.people.find(function(p) { return p.name.toLowerCase() === paidByName.toLowerCase(); });
+      if (!payer) { errors.push('Row ' + lineNum + ': Unknown person "' + paidByName + '"'); return; }
+
+      var splits = [];
+      if (splitType === 'custom' && splitDetails) {
+        var parts = splitDetails.split(',').map(function(s) { return s.trim(); });
+        for (var _i = 0; _i < parts.length; _i++) {
+          var part = parts[_i];
+          var pieces = part.split(':').map(function(s) { return s.trim(); });
+          var name = pieces[0], pct = pieces[1];
+          var person = trip.people.find(function(p) { return p.name.toLowerCase() === name.toLowerCase(); });
+          if (!person) { errors.push('Row ' + lineNum + ': Unknown person in split "' + name + '"'); return; }
+          var percent = parseFloat(pct);
+          if (isNaN(percent)) { errors.push('Row ' + lineNum + ': Invalid percentage for "' + name + '"'); return; }
+          splits.push({ personId: person.id, percent: percent });
+        }
+        var totalPct = splits.reduce(function(s, sp) { return s + sp.percent; }, 0);
+        if (Math.abs(totalPct - 100) > 0.5) {
+          errors.push('Row ' + lineNum + ': Split percentages sum to ' + totalPct + '%, expected 100%');
+          return;
+        }
+      } else {
+        var pctVal = 100 / trip.people.length;
+        splits = trip.people.map(function(p) { return { personId: p.id, percent: pctVal }; });
+      }
+
+      expenses.push({
+        description: desc,
+        amount: amount,
+        date: date || new Date().toISOString().split('T')[0],
+        category: category,
+        paidBy: payer.id,
+        splits: splits
+      });
+    });
+
+    return { expenses: expenses, errors: errors };
+  }
+
+  function exportExpensesCsv(trip) {
+    var rows = trip.expenses.map(function(exp) {
+      var payer = trip.people.find(function(p) { return p.id === exp.paidBy; });
+      var isEqual = exp.splits.length === trip.people.length &&
+        exp.splits.every(function(s) { return Math.abs(s.percent - exp.splits[0].percent) < 0.1; });
+
+      var splitType = 'equal';
+      var splitDetails = '';
+      if (!isEqual) {
+        splitType = 'custom';
+        splitDetails = exp.splits.map(function(s) {
+          var person = trip.people.find(function(p) { return p.id === s.personId; });
+          return (person ? person.name : '?') + ':' + s.percent;
+        }).join(',');
+      }
+
+      return {
+        date: exp.date,
+        description: exp.description,
+        amount: exp.amount.toFixed(2),
+        category: exp.category,
+        paid_by: payer ? payer.name : '?',
+        split_type: splitType,
+        split_details: splitDetails
+      };
+    });
+
+    return Papa.unparse(rows);
+  }
+
+  function downloadCsv(csvString, filename) {
+    var blob = new Blob([csvString], { type: 'text/csv' });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  return { parseExpenseCsv: parseExpenseCsv, exportExpensesCsv: exportExpensesCsv, downloadCsv: downloadCsv };
+})();
+
+// === Store ===
+var Store = (function() {
+  var STORAGE_KEY = 'fairsplit_data';
+
+  function defaultData() {
+    return { trips: [], activeTripId: null };
+  }
+
+  function load() {
+    try {
+      var raw = localStorage.getItem(STORAGE_KEY);
+      return raw ? JSON.parse(raw) : defaultData();
+    } catch(e) {
+      return defaultData();
+    }
+  }
+
+  function save(data) {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+  }
+
+  function getActiveTrip() {
+    var data = load();
+    if (!data.activeTripId) return null;
+    return data.trips.find(function(t) { return t.id === data.activeTripId; }) || null;
+  }
+
+  function setActiveTrip(tripId) {
+    var data = load();
+    data.activeTripId = tripId;
+    save(data);
+  }
+
+  function saveTrip(trip) {
+    var data = load();
+    var idx = data.trips.findIndex(function(t) { return t.id === trip.id; });
+    trip.updatedAt = new Date().toISOString();
+    if (idx >= 0) data.trips[idx] = trip;
+    else data.trips.push(trip);
+    save(data);
+  }
+
+  function deleteTrip(tripId) {
+    var data = load();
+    data.trips = data.trips.filter(function(t) { return t.id !== tripId; });
+    if (data.activeTripId === tripId) {
+      data.activeTripId = data.trips.length ? data.trips[0].id : null;
+    }
+    save(data);
+  }
+
+  return { load: load, save: save, getActiveTrip: getActiveTrip, setActiveTrip: setActiveTrip, saveTrip: saveTrip, deleteTrip: deleteTrip };
+})();
+
+// === Trip model ===
+var Trip = (function() {
+  function createTrip(name, currency) {
+    currency = currency || '$';
+    return {
+      id: Dom.generateId('trip'),
+      name: name,
+      currency: currency,
+      people: [],
+      expenses: [],
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+  }
+
+  return { createTrip: createTrip };
+})();
+
+// === Person model ===
+var Person = (function() {
+  function createPerson(name) {
+    return {
+      id: Dom.generateId('person'),
+      name: name.trim()
+    };
+  }
+
+  return { createPerson: createPerson };
+})();
+
+// === Expense model ===
+var Expense = (function() {
+  var CATEGORIES = ['accommodation', 'food', 'transport', 'activities', 'shopping', 'other'];
+
+  function createExpense(description, amount, paidBy, splits, category, date) {
+    category = category || 'other';
+    date = date || null;
+    return {
+      id: Dom.generateId('exp'),
+      description: description,
+      amount: parseFloat(amount),
+      category: category,
+      date: date || Dom.todayStr(),
+      paidBy: paidBy,
+      splits: splits
+    };
+  }
+
+  function equalSplits(people) {
+    var pct = 100 / people.length;
+    return people.map(function(p) { return { personId: p.id, percent: pct }; });
+  }
+
+  return { CATEGORIES: CATEGORIES, createExpense: createExpense, equalSplits: equalSplits };
+})();
+
+// === Settlement algorithm ===
+var Settlement = (function() {
+  function computeBalances(trip) {
+    var balances = {};
+    trip.people.forEach(function(p) { balances[p.id] = 0; });
+
+    trip.expenses.forEach(function(exp) {
+      balances[exp.paidBy] = (balances[exp.paidBy] || 0) + exp.amount;
+      var totalPct = exp.splits.reduce(function(s, sp) { return s + sp.percent; }, 0);
+      exp.splits.forEach(function(sp) {
+        var owed = exp.amount * sp.percent / totalPct;
+        balances[sp.personId] = (balances[sp.personId] || 0) - owed;
+      });
+    });
+
+    return balances;
+  }
+
+  function computeSettlements(balances, people) {
+    var creditors = [];
+    var debtors = [];
+
+    for (var _i = 0, _a = Object.entries(balances); _i < _a.length; _i++) {
+      var pair = _a[_i];
+      var personId = pair[0], amount = pair[1];
+      var rounded = Math.round(amount * 100) / 100;
+      if (rounded > 0.005) creditors.push({ personId: personId, amount: rounded });
+      else if (rounded < -0.005) debtors.push({ personId: personId, amount: Math.abs(rounded) });
+    }
+
+    creditors.sort(function(a, b) { return b.amount - a.amount; });
+    debtors.sort(function(a, b) { return b.amount - a.amount; });
+
+    var settlements = [];
+    var i = 0, j = 0;
+
+    while (i < debtors.length && j < creditors.length) {
+      var transfer = Math.min(debtors[i].amount, creditors[j].amount);
+      var roundedTransfer = Math.round(transfer * 100) / 100;
+
+      if (roundedTransfer > 0) {
+        var fromPerson = people.find(function(p) { return p.id === debtors[i].personId; });
+        var toPerson = people.find(function(p) { return p.id === creditors[j].personId; });
+        settlements.push({
+          fromId: debtors[i].personId,
+          fromName: fromPerson ? fromPerson.name : debtors[i].personId,
+          toId: creditors[j].personId,
+          toName: toPerson ? toPerson.name : creditors[j].personId,
+          amount: roundedTransfer
+        });
+      }
+
+      debtors[i].amount -= transfer;
+      creditors[j].amount -= transfer;
+
+      if (debtors[i].amount < 0.005) i++;
+      if (creditors[j].amount < 0.005) j++;
+    }
+
+    return settlements;
+  }
+
+  return { computeBalances: computeBalances, computeSettlements: computeSettlements };
+})();
+
+// === Views ===
+
+// --- TripList view ---
+var TripListView = (function() {
+  function renderTripList(container, onTripSelected) {
+    Dom.clearEl(container);
+    var data = Store.load();
+
+    var wrapper = Dom.el('div', {}, [
+      Dom.el('div', { className: 'empty-state' }, [
+        Dom.el('div', { className: 'empty-state-icon', textContent: '$' }),
+        Dom.el('h3', { textContent: 'Welcome to FairSplit' }),
+        Dom.el('p', { textContent: 'Split trip expenses fairly with custom ratios, see who paid what, and settle up with minimal transactions.' })
+      ]),
+      buildCreateForm(onTripSelected),
+    ]);
+
+    if (data.trips.length > 0) {
+      var listSection = Dom.el('div', { className: 'mt-16' }, [
+        Dom.el('div', { className: 'section-title', textContent: 'Your Trips' })
+      ]);
+      data.trips.forEach(function(trip) {
+        listSection.appendChild(buildTripCard(trip, onTripSelected));
+      });
+      wrapper.appendChild(listSection);
+    }
+
+    container.appendChild(wrapper);
+  }
+
+  function buildCreateForm(onTripSelected) {
+    var form = Dom.el('div', { className: 'card' }, [
+      Dom.el('div', { className: 'card-title', textContent: 'Create a Trip' }),
+    ]);
+
+    var nameInput = Dom.el('input', { type: 'text', placeholder: 'e.g. Iceland 2026', id: 'tripName' });
+    var currencyInput = Dom.el('input', { type: 'text', placeholder: '$', value: '$', id: 'tripCurrency', maxLength: '3' });
+    var peopleInput = Dom.el('input', { type: 'text', placeholder: 'Alice, Bob, Charlie', id: 'tripPeople' });
+
+    form.appendChild(Dom.el('div', { className: 'form-group' }, [
+      Dom.el('label', { textContent: 'Trip Name' }),
+      nameInput
+    ]));
+
+    form.appendChild(Dom.el('div', { className: 'form-row' }, [
+      Dom.el('div', { className: 'form-group' }, [
+        Dom.el('label', { textContent: 'Currency Symbol' }),
+        currencyInput
+      ]),
+      Dom.el('div', { className: 'form-group' }, [
+        Dom.el('label', { textContent: 'People (comma-separated)' }),
+        peopleInput
+      ])
+    ]));
+
+    var createBtn = Dom.el('button', {
+      className: 'btn btn-primary btn-block',
+      textContent: 'Create Trip',
+      onClick: function() {
+        var name = nameInput.value.trim();
+        var currency = currencyInput.value.trim() || '$';
+        var peopleStr = peopleInput.value.trim();
+
+        if (!name) { nameInput.focus(); return; }
+        if (!peopleStr) { peopleInput.focus(); return; }
+
+        var trip = Trip.createTrip(name, currency);
+        var names = peopleStr.split(',').map(function(n) { return n.trim(); }).filter(Boolean);
+        if (names.length < 2) {
+          alert('Please add at least 2 people.');
+          return;
+        }
+        trip.people = names.map(function(n) { return Person.createPerson(n); });
+        Store.saveTrip(trip);
+        Store.setActiveTrip(trip.id);
+        onTripSelected(trip);
+      }
+    });
+
+    form.appendChild(Dom.el('div', { className: 'mt-8' }, [createBtn]));
+    return form;
+  }
+
+  function buildTripCard(trip, onTripSelected) {
+    var card = Dom.el('div', { className: 'card', style: { cursor: 'pointer' } }, [
+      Dom.el('div', { className: 'flex-between' }, [
+        Dom.el('div', {}, [
+          Dom.el('div', { className: 'card-title', textContent: trip.name }),
+          Dom.el('div', { className: 'text-muted', style: { fontSize: '0.85rem' }, textContent: trip.people.length + ' people \u00b7 ' + trip.expenses.length + ' expenses' })
+        ]),
+        Dom.el('button', {
+          className: 'btn btn-primary btn-sm',
+          textContent: 'Open',
+          onClick: function(e) {
+            e.stopPropagation();
+            Store.setActiveTrip(trip.id);
+            onTripSelected(trip);
+          }
+        })
+      ])
+    ]);
+
+    return card;
+  }
+
+  function populateTripDropdown(dropdown, onTripChanged) {
+    var data = Store.load();
+    Dom.clearEl(dropdown);
+
+    data.trips.forEach(function(trip) {
+      var opt = Dom.el('option', { value: trip.id, textContent: trip.name });
+      if (trip.id === data.activeTripId) opt.selected = true;
+      dropdown.appendChild(opt);
+    });
+
+    var newOpt = Dom.el('option', { value: '__new__', textContent: '+ New Trip' });
+    dropdown.appendChild(newOpt);
+
+    dropdown.onchange = function() {
+      if (dropdown.value === '__new__') {
+        onTripChanged(null);
+      } else {
+        Store.setActiveTrip(dropdown.value);
+        onTripChanged(Store.getActiveTrip());
+      }
+    };
+  }
+
+  return { renderTripList: renderTripList, populateTripDropdown: populateTripDropdown };
+})();
+
+// --- Expenses view ---
+var ExpensesView = (function() {
+  var editingExpenseId = null;
+
+  function renderExpenses(container, trip) {
+    Dom.clearEl(container);
+    editingExpenseId = null;
+    container.appendChild(buildExpenseForm(trip, container));
+    container.appendChild(Dom.el('div', { className: 'section-title', textContent: 'Expenses' }));
+    container.appendChild(buildExpenseList(trip, container));
+  }
+
+  function buildExpenseForm(trip, rootContainer) {
+    var card = Dom.el('div', { className: 'card' });
+    card.innerHTML = '<div class="card-title" id="formTitle">Add Expense</div>';
+
+    var descInput = Dom.el('input', { type: 'text', placeholder: 'What was this for?', id: 'expDesc' });
+    var amountInput = Dom.el('input', { type: 'number', placeholder: '0.00', step: '0.01', min: '0', id: 'expAmount' });
+    var dateInput = Dom.el('input', { type: 'date', value: Dom.todayStr(), id: 'expDate' });
+    var categorySelect = Dom.el('select', { id: 'expCategory' });
+    Expense.CATEGORIES.forEach(function(c) {
+      categorySelect.appendChild(Dom.el('option', { value: c, textContent: c.charAt(0).toUpperCase() + c.slice(1) }));
+    });
+
+    var paidBySelect = Dom.el('select', { id: 'expPaidBy' });
+    trip.people.forEach(function(p) {
+      paidBySelect.appendChild(Dom.el('option', { value: p.id, textContent: p.name }));
+    });
+
+    card.appendChild(Dom.el('div', { className: 'form-group' }, [
+      Dom.el('label', { textContent: 'Description' }), descInput
+    ]));
+
+    card.appendChild(Dom.el('div', { className: 'form-row' }, [
+      Dom.el('div', { className: 'form-group' }, [
+        Dom.el('label', { textContent: 'Amount (' + trip.currency + ')' }), amountInput
+      ]),
+      Dom.el('div', { className: 'form-group' }, [
+        Dom.el('label', { textContent: 'Date' }), dateInput
+      ])
+    ]));
+
+    card.appendChild(Dom.el('div', { className: 'form-row' }, [
+      Dom.el('div', { className: 'form-group' }, [
+        Dom.el('label', { textContent: 'Category' }), categorySelect
+      ]),
+      Dom.el('div', { className: 'form-group' }, [
+        Dom.el('label', { textContent: 'Paid by' }), paidBySelect
+      ])
+    ]));
+
+    var splitType = 'equal';
+    var equalBtn = Dom.el('button', { className: 'active', textContent: 'Equal Split' });
+    var customBtn = Dom.el('button', { textContent: 'Custom Split' });
+    var toggle = Dom.el('div', { className: 'split-toggle' }, [equalBtn, customBtn]);
+
+    var splitContainer = Dom.el('div', { id: 'splitContainer' });
+
+    equalBtn.onclick = function() {
+      splitType = 'equal';
+      equalBtn.className = 'active';
+      customBtn.className = '';
+      renderSplitInputs(splitContainer, trip, splitType, amountInput);
+    };
+
+    customBtn.onclick = function() {
+      splitType = 'custom';
+      customBtn.className = 'active';
+      equalBtn.className = '';
+      renderSplitInputs(splitContainer, trip, splitType, amountInput);
+    };
+
+    card.appendChild(Dom.el('div', { className: 'form-group' }, [
+      Dom.el('label', { textContent: 'Split' }), toggle
+    ]));
+
+    card.appendChild(splitContainer);
+    renderSplitInputs(splitContainer, trip, splitType, amountInput);
+
+    amountInput.addEventListener('input', function() {
+      updateSplitAmounts(splitContainer, amountInput);
+    });
+
+    var remaining = Dom.el('div', { className: 'split-remaining', id: 'splitRemaining' });
+    card.appendChild(remaining);
+
+    var saveBtn = Dom.el('button', {
+      className: 'btn btn-primary',
+      textContent: 'Add Expense',
+      id: 'saveExpBtn',
+      onClick: function() {
+        var desc = descInput.value.trim();
+        var amount = parseFloat(amountInput.value);
+        if (!desc) { descInput.focus(); return; }
+        if (!amount || amount <= 0) { amountInput.focus(); return; }
+
+        var splits = getSplitsFromInputs(splitContainer, trip, splitType);
+        if (!splits) return;
+
+        var totalPct = splits.reduce(function(s, sp) { return s + sp.percent; }, 0);
+        if (Math.abs(totalPct - 100) > 0.1) {
+          alert('Split percentages must add up to 100%');
+          return;
+        }
+
+        var activeTrip = Store.getActiveTrip();
+        if (editingExpenseId) {
+          var idx = activeTrip.expenses.findIndex(function(e) { return e.id === editingExpenseId; });
+          if (idx >= 0) {
+            activeTrip.expenses[idx].description = desc;
+            activeTrip.expenses[idx].amount = amount;
+            activeTrip.expenses[idx].date = dateInput.value;
+            activeTrip.expenses[idx].category = categorySelect.value;
+            activeTrip.expenses[idx].paidBy = paidBySelect.value;
+            activeTrip.expenses[idx].splits = splits;
+          }
+          editingExpenseId = null;
+        } else {
+          var expense = Expense.createExpense(desc, amount, paidBySelect.value, splits, categorySelect.value, dateInput.value);
+          activeTrip.expenses.push(expense);
+        }
+
+        Store.saveTrip(activeTrip);
+        renderExpenses(rootContainer, activeTrip);
+      }
+    });
+
+    var cancelBtn = Dom.el('button', {
+      className: 'btn btn-secondary',
+      textContent: 'Cancel',
+      style: { display: 'none' },
+      id: 'cancelExpBtn',
+      onClick: function() {
+        editingExpenseId = null;
+        renderExpenses(rootContainer, Store.getActiveTrip());
+      }
+    });
+
+    card.appendChild(Dom.el('div', { className: 'flex gap-8 mt-8' }, [saveBtn, cancelBtn]));
+
+    return card;
+  }
+
+  function renderSplitInputs(container, trip, splitType, amountInput) {
+    Dom.clearEl(container);
+
+    trip.people.forEach(function(p) {
+      var row = Dom.el('div', { className: 'split-row', 'data-person-id': p.id });
+      row.appendChild(Dom.el('span', { className: 'person-name', textContent: p.name }));
+
+      if (splitType === 'equal') {
+        var cb = Dom.el('input', {
+          type: 'checkbox',
+          checked: 'checked',
+          className: 'split-checkbox',
+          'data-person-id': p.id,
+        });
+        cb.addEventListener('change', function() { updateEqualSplits(container, amountInput); });
+        row.appendChild(cb);
+      } else {
+        var pctInput = Dom.el('input', {
+          type: 'number',
+          className: 'split-pct',
+          value: (100 / trip.people.length).toFixed(1),
+          min: '0',
+          max: '100',
+          step: '0.1',
+          'data-person-id': p.id
+        });
+        pctInput.addEventListener('input', function() {
+          updateCustomRemaining(container);
+          updateSplitAmounts(container, amountInput);
+        });
+        row.appendChild(pctInput);
+        row.appendChild(Dom.el('span', { textContent: '%', style: { fontSize: '0.85rem', color: '#64748b' } }));
+      }
+
+      row.appendChild(Dom.el('span', { className: 'split-amount', 'data-amount-for': p.id }));
+      container.appendChild(row);
+    });
+
+    updateSplitAmounts(container, amountInput);
+    if (splitType === 'custom') updateCustomRemaining(container);
+  }
+
+  function updateEqualSplits(container, amountInput) {
+    updateSplitAmounts(container, amountInput);
+  }
+
+  function updateSplitAmounts(container, amountInput) {
+    var amount = parseFloat(amountInput.value) || 0;
+    var rows = container.querySelectorAll('.split-row');
+    var checkboxes = container.querySelectorAll('.split-checkbox');
+    var pctInputs = container.querySelectorAll('.split-pct');
+
+    if (checkboxes.length > 0) {
+      var checked = Array.from(checkboxes).filter(function(cb) { return cb.checked; });
+      var perPerson = checked.length > 0 ? amount / checked.length : 0;
+      rows.forEach(function(row) {
+        var cb = row.querySelector('.split-checkbox');
+        var amountEl = row.querySelector('.split-amount');
+        if (cb && cb.checked) {
+          amountEl.textContent = Currency.formatMoney(perPerson);
+        } else if (amountEl) {
+          amountEl.textContent = Currency.formatMoney(0);
+        }
+      });
+    } else if (pctInputs.length > 0) {
+      rows.forEach(function(row) {
+        var pctInput = row.querySelector('.split-pct');
+        var amountEl = row.querySelector('.split-amount');
+        if (pctInput && amountEl) {
+          var pct = parseFloat(pctInput.value) || 0;
+          amountEl.textContent = Currency.formatMoney(amount * pct / 100);
+        }
+      });
+    }
+  }
+
+  function updateCustomRemaining(container) {
+    var pctInputs = container.querySelectorAll('.split-pct');
+    var total = 0;
+    pctInputs.forEach(function(inp) { total += parseFloat(inp.value) || 0; });
+    var rem = document.getElementById('splitRemaining');
+    if (rem) {
+      var diff = 100 - total;
+      if (Math.abs(diff) < 0.1) {
+        rem.textContent = 'Splits add up to 100%';
+        rem.className = 'split-remaining valid';
+      } else {
+        rem.textContent = (diff > 0 ? diff.toFixed(1) + '% remaining' : Math.abs(diff).toFixed(1) + '% over');
+        rem.className = 'split-remaining invalid';
+      }
+    }
+  }
+
+  function getSplitsFromInputs(container, trip, splitType) {
+    var splits = [];
+
+    if (splitType === 'equal') {
+      var checkboxes = container.querySelectorAll('.split-checkbox');
+      var checked = Array.from(checkboxes).filter(function(cb) { return cb.checked; });
+      if (checked.length === 0) {
+        alert('Select at least one person for the split.');
+        return null;
+      }
+      var pct = 100 / checked.length;
+      checked.forEach(function(cb) {
+        splits.push({ personId: cb.getAttribute('data-person-id'), percent: pct });
+      });
+    } else {
+      var pctInputs = container.querySelectorAll('.split-pct');
+      pctInputs.forEach(function(inp) {
+        var pct = parseFloat(inp.value) || 0;
+        if (pct > 0) {
+          splits.push({ personId: inp.getAttribute('data-person-id'), percent: pct });
+        }
+      });
+    }
+
+    return splits;
+  }
+
+  function buildExpenseList(trip, rootContainer) {
+    var list = Dom.el('div', { id: 'expenseList' });
+
+    if (trip.expenses.length === 0) {
+      list.appendChild(Dom.el('div', { className: 'empty-state' }, [
+        Dom.el('p', { textContent: 'No expenses yet. Add your first expense above.' })
+      ]));
+      return list;
+    }
+
+    var sorted = trip.expenses.slice().sort(function(a, b) { return new Date(b.date) - new Date(a.date); });
+
+    sorted.forEach(function(exp) {
+      var payer = trip.people.find(function(p) { return p.id === exp.paidBy; });
+      var item = Dom.el('div', { className: 'expense-item' });
+
+      var header = Dom.el('div', { className: 'expense-header' });
+      header.appendChild(Dom.el('div', { className: 'expense-info' }, [
+        Dom.el('div', { className: 'expense-desc', textContent: exp.description }),
+        Dom.el('div', { className: 'expense-meta', textContent: (payer ? payer.name : '?') + ' paid \u00b7 ' + exp.date }),
+      ]));
+      header.appendChild(Dom.el('span', { className: 'category-tag', textContent: exp.category }));
+      header.appendChild(Dom.el('div', { className: 'expense-amount', textContent: trip.currency + exp.amount.toFixed(2) }));
+
+      var details = Dom.el('div', { className: 'expense-details' });
+
+      var totalPct = exp.splits.reduce(function(s, sp) { return s + sp.percent; }, 0);
+      exp.splits.forEach(function(sp) {
+        var person = trip.people.find(function(p) { return p.id === sp.personId; });
+        var splitAmount = exp.amount * sp.percent / totalPct;
+        details.appendChild(Dom.el('div', { className: 'expense-detail-row' }, [
+          Dom.el('span', { textContent: person ? person.name : '?' }),
+          Dom.el('span', { textContent: sp.percent.toFixed(1) + '% \u2014 ' + trip.currency + splitAmount.toFixed(2) })
+        ]));
+      });
+
+      var actions = Dom.el('div', { className: 'expense-actions' }, [
+        Dom.el('button', {
+          className: 'btn btn-secondary btn-sm',
+          textContent: 'Edit',
+          onClick: function(e) {
+            e.stopPropagation();
+            startEdit(exp, trip, rootContainer);
+          }
+        }),
+        Dom.el('button', {
+          className: 'btn btn-danger btn-sm',
+          textContent: 'Delete',
+          onClick: function(e) {
+            e.stopPropagation();
+            if (confirm('Delete "' + exp.description + '"?')) {
+              var t = Store.getActiveTrip();
+              t.expenses = t.expenses.filter(function(ex) { return ex.id !== exp.id; });
+              Store.saveTrip(t);
+              renderExpenses(rootContainer, t);
+            }
+          }
+        })
+      ]);
+      details.appendChild(actions);
+
+      header.onclick = function() { details.classList.toggle('open'); };
+      item.appendChild(header);
+      item.appendChild(details);
+      list.appendChild(item);
+    });
+
+    return list;
+  }
+
+  function startEdit(expense, trip, rootContainer) {
+    editingExpenseId = expense.id;
+    renderExpenses(rootContainer, trip);
+
+    setTimeout(function() {
+      document.getElementById('formTitle').textContent = 'Edit Expense';
+      document.getElementById('expDesc').value = expense.description;
+      document.getElementById('expAmount').value = expense.amount;
+      document.getElementById('expDate').value = expense.date;
+      document.getElementById('expCategory').value = expense.category;
+      document.getElementById('expPaidBy').value = expense.paidBy;
+      document.getElementById('saveExpBtn').textContent = 'Update Expense';
+      document.getElementById('cancelExpBtn').style.display = 'inline-flex';
+
+      var isEqual = expense.splits.length > 0 &&
+        expense.splits.every(function(s) { return Math.abs(s.percent - expense.splits[0].percent) < 0.1; });
+
+      if (!isEqual) {
+        var toggle = document.querySelector('.split-toggle');
+        if (toggle) {
+          toggle.children[1].click();
+          setTimeout(function() {
+            expense.splits.forEach(function(sp) {
+              var input = document.querySelector('.split-pct[data-person-id="' + sp.personId + '"]');
+              if (input) input.value = sp.percent.toFixed(1);
+            });
+            document.querySelectorAll('.split-pct').forEach(function(inp) {
+              var pid = inp.getAttribute('data-person-id');
+              if (!expense.splits.find(function(s) { return s.personId === pid; })) {
+                inp.value = '0';
+              }
+            });
+            updateCustomRemaining(document.getElementById('splitContainer'));
+          }, 50);
+        }
+      }
+    }, 50);
+  }
+
+  return { renderExpenses: renderExpenses };
+})();
+
+// --- Dashboard view ---
+var DashboardView = (function() {
+  var chartInstance = null;
+
+  function renderDashboard(container, trip) {
+    Dom.clearEl(container);
+
+    if (trip.expenses.length === 0) {
+      container.appendChild(Dom.el('div', { className: 'empty-state' }, [
+        Dom.el('p', { textContent: 'Add some expenses to see the dashboard.' })
+      ]));
+      return;
+    }
+
+    var balances = Settlement.computeBalances(trip);
+    var totalSpent = trip.expenses.reduce(function(s, e) { return s + e.amount; }, 0);
+    var fairShare = totalSpent / trip.people.length;
+
+    container.appendChild(Dom.el('div', { className: 'card text-center' }, [
+      Dom.el('div', { className: 'text-muted', style: { fontSize: '0.85rem' }, textContent: 'Total Trip Cost' }),
+      Dom.el('div', { style: { fontSize: '1.8rem', fontWeight: '700', color: '#4f46e5' }, textContent: trip.currency + totalSpent.toFixed(2) }),
+      Dom.el('div', { className: 'text-muted', style: { fontSize: '0.85rem' }, textContent: 'Fair share: ' + trip.currency + fairShare.toFixed(2) + ' per person' })
+    ]));
+
+    container.appendChild(Dom.el('div', { className: 'section-title', textContent: 'Who Paid What' }));
+    var cards = Dom.el('div', { className: 'summary-cards' });
+
+    var paidByPerson = {};
+    trip.people.forEach(function(p) { paidByPerson[p.id] = 0; });
+    trip.expenses.forEach(function(exp) {
+      paidByPerson[exp.paidBy] = (paidByPerson[exp.paidBy] || 0) + exp.amount;
+    });
+
+    var maxPaid = Math.max.apply(null, Object.values(paidByPerson).concat([1]));
+
+    trip.people.forEach(function(p) {
+      var paid = paidByPerson[p.id] || 0;
+      var net = Math.round(balances[p.id] * 100) / 100;
+
+      var card = Dom.el('div', { className: 'person-card' }, [
+        Dom.el('div', { className: 'name', textContent: p.name }),
+        Dom.el('div', { className: 'stat' }, [
+          Dom.el('span', { textContent: 'Total paid' }),
+          Dom.el('span', { className: 'stat-value', textContent: trip.currency + paid.toFixed(2) })
+        ]),
+        Dom.el('div', { className: 'stat' }, [
+          Dom.el('span', { textContent: 'Fair share' }),
+          Dom.el('span', { className: 'stat-value', textContent: trip.currency + fairShare.toFixed(2) })
+        ]),
+        Dom.el('div', { className: 'net ' + (net >= 0 ? 'positive' : 'negative'), textContent: net >= 0 ? 'Owed ' + trip.currency + net.toFixed(2) : 'Owes ' + trip.currency + Math.abs(net).toFixed(2) }),
+        Dom.el('div', { className: 'bar-container' }, [
+          Dom.el('div', { className: 'bar-fill', style: { width: (paid / maxPaid) * 100 + '%' } })
+        ])
+      ]);
+
+      cards.appendChild(card);
+    });
+
+    container.appendChild(cards);
+
+    container.appendChild(Dom.el('div', { className: 'section-title', textContent: 'Spending by Category' }));
+    var chartContainer = Dom.el('div', { className: 'chart-container' });
+    var canvas = Dom.el('canvas', { id: 'categoryChart' });
+    chartContainer.appendChild(canvas);
+    container.appendChild(chartContainer);
+
+    renderCategoryChart(canvas, trip);
+
+    container.appendChild(Dom.el('div', { className: 'section-title', textContent: 'Biggest Expenses' }));
+    var table = Dom.el('table', { className: 'data-table' });
+    var thead = Dom.el('thead', {}, [
+      Dom.el('tr', {}, [
+        Dom.el('th', { textContent: 'Description' }),
+        Dom.el('th', { textContent: 'Amount' }),
+        Dom.el('th', { textContent: 'Paid By' }),
+        Dom.el('th', { textContent: 'Date' })
+      ])
+    ]);
+    var tbody = Dom.el('tbody');
+
+    var top5 = trip.expenses.slice().sort(function(a, b) { return b.amount - a.amount; }).slice(0, 5);
+    top5.forEach(function(exp) {
+      var payer = trip.people.find(function(p) { return p.id === exp.paidBy; });
+      tbody.appendChild(Dom.el('tr', {}, [
+        Dom.el('td', { textContent: exp.description }),
+        Dom.el('td', { style: { fontWeight: '600' }, textContent: trip.currency + exp.amount.toFixed(2) }),
+        Dom.el('td', { textContent: payer ? payer.name : '?' }),
+        Dom.el('td', { textContent: exp.date })
+      ]));
+    });
+
+    table.appendChild(thead);
+    table.appendChild(tbody);
+    container.appendChild(Dom.el('div', { className: 'card', style: { overflow: 'auto' } }, [table]));
+  }
+
+  function renderCategoryChart(canvas, trip) {
+    if (chartInstance) chartInstance.destroy();
+
+    var categories = {};
+    var personCategories = {};
+
+    trip.people.forEach(function(p) { personCategories[p.id] = {}; });
+
+    trip.expenses.forEach(function(exp) {
+      var cat = exp.category || 'other';
+      categories[cat] = (categories[cat] || 0) + exp.amount;
+      if (personCategories[exp.paidBy]) {
+        personCategories[exp.paidBy][cat] = (personCategories[exp.paidBy][cat] || 0) + exp.amount;
+      }
+    });
+
+    var catList = Object.keys(categories).sort(function(a, b) { return categories[b] - categories[a]; });
+    var colors = ['#4f46e5', '#16a34a', '#f59e0b', '#dc2626', '#8b5cf6', '#ec4899'];
+
+    var datasets = catList.map(function(cat, i) {
+      return {
+        label: cat.charAt(0).toUpperCase() + cat.slice(1),
+        data: trip.people.map(function(p) { return personCategories[p.id][cat] || 0; }),
+        backgroundColor: colors[i % colors.length],
+        borderRadius: 4
+      };
+    });
+
+    chartInstance = new Chart(canvas, {
+      type: 'bar',
+      data: {
+        labels: trip.people.map(function(p) { return p.name; }),
+        datasets: datasets
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: true,
+        plugins: {
+          legend: { position: 'bottom', labels: { boxWidth: 12, padding: 16 } }
+        },
+        scales: {
+          x: { stacked: true, grid: { display: false } },
+          y: { stacked: true, ticks: { callback: function(v) { return trip.currency + v; } } }
+        }
+      }
+    });
+  }
+
+  return { renderDashboard: renderDashboard };
+})();
+
+// --- Settle view ---
+var SettleView = (function() {
+  function renderSettle(container, trip) {
+    Dom.clearEl(container);
+
+    if (trip.expenses.length === 0) {
+      container.appendChild(Dom.el('div', { className: 'empty-state' }, [
+        Dom.el('p', { textContent: 'Add some expenses to calculate settlements.' })
+      ]));
+      return;
+    }
+
+    var balances = Settlement.computeBalances(trip);
+    var settlements = Settlement.computeSettlements(balances, trip.people);
+
+    container.appendChild(Dom.el('div', { className: 'section-title', textContent: 'Net Balances' }));
+    var balanceCard = Dom.el('div', { className: 'card' });
+
+    trip.people.forEach(function(p) {
+      var net = Math.round(balances[p.id] * 100) / 100;
+      var row = Dom.el('div', { className: 'flex-between', style: { padding: '6px 0', borderBottom: '1px solid #f1f5f9' } }, [
+        Dom.el('span', { style: { fontWeight: '500' }, textContent: p.name }),
+        Dom.el('span', {
+          className: net >= 0 ? 'net positive' : 'net negative',
+          style: { fontWeight: '600' },
+          textContent: net >= 0 ? '+' + trip.currency + net.toFixed(2) : '-' + trip.currency + Math.abs(net).toFixed(2)
+        })
+      ]);
+      balanceCard.appendChild(row);
+    });
+
+    container.appendChild(balanceCard);
+
+    container.appendChild(Dom.el('div', { className: 'section-title', textContent: 'Settle Up' }));
+
+    if (settlements.length === 0) {
+      container.appendChild(Dom.el('div', { className: 'card text-center' }, [
+        Dom.el('p', { style: { color: '#16a34a', fontWeight: '500' }, textContent: 'All settled! No payments needed.' })
+      ]));
+      return;
+    }
+
+    container.appendChild(Dom.el('div', { className: 'text-muted mb-8', style: { fontSize: '0.85rem' } },
+      ['Only ' + settlements.length + ' transaction' + (settlements.length > 1 ? 's' : '') + ' needed to settle up']
+    ));
+
+    settlements.forEach(function(s) {
+      var card = Dom.el('div', { className: 'settlement-card' });
+
+      var fromEl = Dom.el('span', { style: { fontWeight: '500' }, textContent: s.fromName });
+      var arrow = Dom.el('span', { className: 'settlement-arrow', textContent: '\u2192' });
+      var toEl = Dom.el('span', { style: { fontWeight: '500' }, textContent: s.toName });
+      var amount = Dom.el('span', { className: 'settlement-amount', textContent: trip.currency + s.amount.toFixed(2) });
+
+      var paidBtn = Dom.el('button', {
+        className: 'btn btn-success btn-sm',
+        textContent: 'Paid',
+        onClick: function() {
+          card.classList.toggle('paid');
+          paidBtn.textContent = card.classList.contains('paid') ? 'Undo' : 'Paid';
+        }
+      });
+
+      card.appendChild(fromEl);
+      card.appendChild(arrow);
+      card.appendChild(toEl);
+      card.appendChild(amount);
+      card.appendChild(paidBtn);
+      container.appendChild(card);
+    });
+  }
+
+  return { renderSettle: renderSettle };
+})();
+
+// --- ImportExport view ---
+var ImportExportView = (function() {
+  function renderImportExport(container, trip) {
+    Dom.clearEl(container);
+
+    container.appendChild(Dom.el('div', { className: 'section-title', textContent: 'Import Expenses' }));
+
+    var fileInput = Dom.el('input', { type: 'file', accept: '.csv' });
+    var dropZone = Dom.el('div', { className: 'file-drop' }, [
+      fileInput,
+      Dom.el('div', { className: 'file-drop-text' }, [
+        Dom.el('strong', { textContent: 'Click to upload' }),
+        document.createTextNode(' or drag and drop a CSV file')
+      ]),
+      Dom.el('div', { className: 'text-muted', style: { fontSize: '0.8rem', marginTop: '6px' }, textContent: 'Columns: date, description, amount, category, paid_by, split_type, split_details' })
+    ]);
+
+    dropZone.onclick = function() { fileInput.click(); };
+    dropZone.ondragover = function(e) { e.preventDefault(); dropZone.classList.add('dragover'); };
+    dropZone.ondragleave = function() { dropZone.classList.remove('dragover'); };
+    dropZone.ondrop = function(e) {
+      e.preventDefault();
+      dropZone.classList.remove('dragover');
+      var file = e.dataTransfer.files[0];
+      if (file) handleFile(file, trip, container);
+    };
+
+    fileInput.onchange = function() {
+      if (fileInput.files[0]) handleFile(fileInput.files[0], trip, container);
+    };
+
+    container.appendChild(dropZone);
+
+    var previewArea = Dom.el('div', { id: 'importPreview' });
+    container.appendChild(previewArea);
+
+    container.appendChild(Dom.el('div', { className: 'section-title', textContent: 'Export' }));
+
+    var exportCard = Dom.el('div', { className: 'card' }, [
+      Dom.el('div', { className: 'flex gap-8' }, [
+        Dom.el('button', {
+          className: 'btn btn-secondary',
+          textContent: 'Export Expenses CSV',
+          onClick: function() {
+            var csv = Csv.exportExpensesCsv(trip);
+            Csv.downloadCsv(csv, trip.name.replace(/\s+/g, '_') + '_expenses.csv');
+          }
+        }),
+        Dom.el('button', {
+          className: 'btn btn-secondary',
+          textContent: 'Export Settlements CSV',
+          onClick: function() {
+            var balances = Settlement.computeBalances(trip);
+            var settlements = Settlement.computeSettlements(balances, trip.people);
+            var rows = settlements.map(function(s) {
+              return {
+                from: s.fromName,
+                to: s.toName,
+                amount: s.amount.toFixed(2)
+              };
+            });
+            var csv = Papa.unparse(rows);
+            Csv.downloadCsv(csv, trip.name.replace(/\s+/g, '_') + '_settlements.csv');
+          }
+        })
+      ])
+    ]);
+
+    container.appendChild(exportCard);
+
+    container.appendChild(Dom.el('div', { className: 'section-title', textContent: 'CSV Format Guide' }));
+    var help = Dom.el('div', { className: 'card' });
+    help.innerHTML = '\n    <div style="font-size:0.85rem; line-height:1.7">\n      <strong>Required columns:</strong> date, description, amount, paid_by<br>\n      <strong>Optional columns:</strong> category, split_type, split_details<br><br>\n      <strong>split_type:</strong> "equal" (default) or "custom"<br>\n      <strong>split_details:</strong> For custom splits, use "Name:Percent,Name:Percent"<br><br>\n      <strong>Example:</strong><br>\n      <code style="background:#f1f5f9; padding:8px; display:block; border-radius:6px; font-size:0.8rem; overflow-x:auto; white-space:nowrap">\n2026-03-15,Hotel,450.00,accommodation,Alice,custom,"Alice:50,Bob:30,Charlie:20"</code>\n    </div>\n  ';
+    container.appendChild(help);
+  }
+
+  function handleFile(file, trip, rootContainer) {
+    var reader = new FileReader();
+    reader.onload = function(e) {
+      var text = e.target.result;
+      var result = Csv.parseExpenseCsv(text, trip);
+      showPreview(result.expenses, result.errors, trip, rootContainer);
+    };
+    reader.readAsText(file);
+  }
+
+  function showPreview(expenses, errors, trip, rootContainer) {
+    var preview = document.getElementById('importPreview');
+    if (!preview) return;
+    Dom.clearEl(preview);
+
+    if (errors.length > 0) {
+      errors.forEach(function(err) {
+        preview.appendChild(Dom.el('div', { className: 'validation-msg error', textContent: err }));
+      });
+    }
+
+    if (expenses.length === 0) {
+      preview.appendChild(Dom.el('div', { className: 'validation-msg error', textContent: 'No valid expenses found in CSV.' }));
+      return;
+    }
+
+    preview.appendChild(Dom.el('div', { className: 'validation-msg success', textContent: expenses.length + ' expense(s) ready to import' }));
+
+    var table = Dom.el('table', { className: 'data-table' });
+    var thead = Dom.el('thead', {}, [
+      Dom.el('tr', {}, [
+        Dom.el('th', { textContent: 'Description' }),
+        Dom.el('th', { textContent: 'Amount' }),
+        Dom.el('th', { textContent: 'Paid By' }),
+        Dom.el('th', { textContent: 'Split' })
+      ])
+    ]);
+    var tbody = Dom.el('tbody');
+
+    expenses.forEach(function(exp) {
+      var payer = trip.people.find(function(p) { return p.id === exp.paidBy; });
+      var splitDesc = exp.splits.map(function(s) {
+        var person = trip.people.find(function(p) { return p.id === s.personId; });
+        return (person ? person.name : '?') + ': ' + s.percent + '%';
+      }).join(', ');
+
+      tbody.appendChild(Dom.el('tr', {}, [
+        Dom.el('td', { textContent: exp.description }),
+        Dom.el('td', { textContent: trip.currency + exp.amount.toFixed(2) }),
+        Dom.el('td', { textContent: payer ? payer.name : '?' }),
+        Dom.el('td', { style: { fontSize: '0.8rem' }, textContent: splitDesc })
+      ]));
+    });
+
+    table.appendChild(thead);
+    table.appendChild(tbody);
+    preview.appendChild(Dom.el('div', { className: 'card', style: { overflow: 'auto' } }, [table]));
+
+    preview.appendChild(Dom.el('button', {
+      className: 'btn btn-primary btn-block mt-8',
+      textContent: 'Import ' + expenses.length + ' Expense(s)',
+      onClick: function() {
+        var activeTrip = Store.getActiveTrip();
+        expenses.forEach(function(exp) {
+          activeTrip.expenses.push(Object.assign({ id: Dom.generateId('exp') }, exp));
+        });
+        Store.saveTrip(activeTrip);
+        renderImportExport(rootContainer, activeTrip);
+      }
+    }));
+  }
+
+  return { renderImportExport: renderImportExport };
+})();
+
+// === App (main entry point) ===
+(function() {
+  var viewContainers = {
+    trips: function() { return document.getElementById('view-trips'); },
+    expenses: function() { return document.getElementById('view-expenses'); },
+    dashboard: function() { return document.getElementById('view-dashboard'); },
+    settle: function() { return document.getElementById('view-settle'); },
+    import: function() { return document.getElementById('view-import'); }
+  };
+
+  var currentView = 'trips';
+
+  function initTheme() {
+    var saved = localStorage.getItem('fairsplit_theme');
+    var btn = document.getElementById('themeToggle');
+    if (saved === 'dark') {
+      document.documentElement.setAttribute('data-theme', 'dark');
+      btn.innerHTML = '&#9788;';
+    }
+    btn.addEventListener('click', function() {
+      var isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+      if (isDark) {
+        document.documentElement.removeAttribute('data-theme');
+        localStorage.setItem('fairsplit_theme', 'light');
+        btn.innerHTML = '&#9790;';
+      } else {
+        document.documentElement.setAttribute('data-theme', 'dark');
+        localStorage.setItem('fairsplit_theme', 'dark');
+        btn.innerHTML = '&#9788;';
+      }
+    });
+  }
+
+  function init() {
+    initTheme();
+    var data = Store.load();
+
+    if (data.activeTripId && data.trips.find(function(t) { return t.id === data.activeTripId; })) {
+      enterTripMode(Store.getActiveTrip());
+    } else {
+      showTripList();
+    }
+
+    document.querySelectorAll('.tab').forEach(function(tab) {
+      tab.addEventListener('click', function() {
+        var view = tab.dataset.view;
+        switchToView(view);
+      });
+    });
+  }
+
+  function showTripList() {
+    document.getElementById('tabBar').style.display = 'none';
+    document.getElementById('tripSelector').style.display = 'none';
+    Dom.showView('trips');
+    currentView = 'trips';
+    TripListView.renderTripList(viewContainers.trips(), function(trip) {
+      if (trip) enterTripMode(trip);
+    });
+  }
+
+  function enterTripMode(trip) {
+    document.getElementById('tabBar').style.display = 'flex';
+    document.getElementById('tripSelector').style.display = 'block';
+
+    TripListView.populateTripDropdown(document.getElementById('tripDropdown'), function(selectedTrip) {
+      if (selectedTrip) {
+        enterTripMode(selectedTrip);
+      } else {
+        showTripList();
+      }
+    });
+
+    switchToView('expenses');
+  }
+
+  function switchToView(view) {
+    currentView = view;
+
+    document.querySelectorAll('.tab').forEach(function(t) {
+      t.classList.toggle('active', t.dataset.view === view);
+    });
+
+    Dom.showView(view);
+
+    var trip = Store.getActiveTrip();
+    if (!trip) { showTripList(); return; }
+
+    switch (view) {
+      case 'expenses':
+        ExpensesView.renderExpenses(viewContainers.expenses(), trip);
+        break;
+      case 'dashboard':
+        DashboardView.renderDashboard(viewContainers.dashboard(), trip);
+        break;
+      case 'settle':
+        SettleView.renderSettle(viewContainers.settle(), trip);
+        break;
+      case 'import':
+        ImportExportView.renderImportExport(viewContainers.import(), trip);
+        break;
+    }
+  }
+
+  document.addEventListener('DOMContentLoaded', init);
+})();
+  </script>
+</body>
+</html>
