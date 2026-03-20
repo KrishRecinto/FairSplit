@@ -643,6 +643,169 @@ body {
 .flex { display: flex; }
 .flex-between { display: flex; justify-content: space-between; align-items: center; }
 
+/* Receipt */
+.receipt {
+  max-width: 380px;
+  margin: 20px auto;
+  background: #fffef9;
+  border: 1px solid #e5e2d8;
+  border-radius: 2px;
+  padding: 28px 24px 0;
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 0.8rem;
+  color: #2a2a2a;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+  position: relative;
+}
+
+[data-theme="dark"] .receipt {
+  background: #1a1a1a;
+  border-color: #333;
+  color: #d4d4d4;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.3);
+}
+
+.receipt-header {
+  text-align: center;
+  padding-bottom: 12px;
+}
+
+.receipt-title {
+  font-size: 1.2rem;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+
+.receipt-date {
+  font-size: 0.75rem;
+  color: #666;
+  margin-bottom: 6px;
+}
+
+[data-theme="dark"] .receipt-date { color: #888; }
+
+.receipt-people {
+  font-size: 0.7rem;
+  color: #888;
+}
+
+[data-theme="dark"] .receipt-people { color: #666; }
+
+.receipt-divider {
+  border: none;
+  border-top: 2px dashed #ccc;
+  margin: 10px 0;
+}
+
+[data-theme="dark"] .receipt-divider { border-top-color: #444; }
+
+.receipt-divider-thin {
+  border: none;
+  border-top: 1px solid #e0ddd4;
+  margin: 6px 0;
+}
+
+[data-theme="dark"] .receipt-divider-thin { border-top-color: #333; }
+
+.receipt-row {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: 12px;
+  padding: 4px 0;
+  align-items: baseline;
+}
+
+.receipt-row-header {
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: #999;
+  letter-spacing: 0.5px;
+}
+
+.receipt-item-desc {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.receipt-item-payer {
+  font-size: 0.7rem;
+  color: #888;
+  text-align: center;
+}
+
+.receipt-item-amount {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.receipt-total {
+  font-weight: 700;
+  font-size: 0.95rem;
+  padding: 6px 0;
+}
+
+.receipt-section-title {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 1px;
+  color: #999;
+  text-align: center;
+  padding: 4px 0 0;
+}
+
+.receipt-person-detail {
+  font-size: 0.7rem;
+  color: #888;
+  text-align: center;
+}
+
+.receipt-net {
+  text-align: right;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.receipt-net.positive { color: #16a34a; }
+.receipt-net.negative { color: #dc2626; }
+
+[data-theme="dark"] .receipt-net.positive { color: #4ade80; }
+[data-theme="dark"] .receipt-net.negative { color: #f87171; }
+
+.receipt-settle-amount {
+  text-align: right;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.receipt-footer {
+  text-align: center;
+  padding: 10px 0 16px;
+  font-size: 0.65rem;
+  color: #aaa;
+  line-height: 1.6;
+}
+
+[data-theme="dark"] .receipt-footer { color: #555; }
+
+.receipt-tear {
+  height: 12px;
+  margin: 0 -24px;
+  background: linear-gradient(135deg, #fffef9 33.33%, transparent 33.33%) 0 0 / 12px 100%,
+              linear-gradient(225deg, #fffef9 33.33%, transparent 33.33%) 0 0 / 12px 100%;
+  background-repeat: repeat-x;
+  background-position: bottom;
+}
+
+[data-theme="dark"] .receipt-tear {
+  background: linear-gradient(135deg, #1a1a1a 33.33%, transparent 33.33%) 0 0 / 12px 100%,
+              linear-gradient(225deg, #1a1a1a 33.33%, transparent 33.33%) 0 0 / 12px 100%;
+  background-repeat: repeat-x;
+  background-position: bottom;
+}
+
 /* People chips input */
 .person-input-row {
   display: flex;
