@@ -314,6 +314,21 @@ body {
 .split-row .person-name {
   flex: 1;
   font-size: 0.9rem;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.paid-badge {
+  display: inline-block;
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-size: 0.65rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  background: var(--success-bg);
+  color: var(--success);
 }
 
 .split-row input[type="number"] {

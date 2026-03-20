@@ -68,7 +68,7 @@ function buildExpenseForm(trip, rootContainer) {
     manuallyEdited.clear();
     equalBtn.className = 'active';
     customBtn.className = '';
-    renderSplitInputs(splitContainer, trip, splitType, amountInput, manuallyEdited);
+    renderSplitInputs(splitContainer, trip, splitType, amountInput, manuallyEdited, paidBySelect);
   };
 
   customBtn.onclick = () => {
@@ -76,7 +76,7 @@ function buildExpenseForm(trip, rootContainer) {
     manuallyEdited.clear();
     customBtn.className = 'active';
     equalBtn.className = '';
-    renderSplitInputs(splitContainer, trip, splitType, amountInput, manuallyEdited);
+    renderSplitInputs(splitContainer, trip, splitType, amountInput, manuallyEdited, paidBySelect);
   };
 
   card.appendChild(el('div', { className: 'form-group' }, [
@@ -84,7 +84,12 @@ function buildExpenseForm(trip, rootContainer) {
   ]));
 
   card.appendChild(splitContainer);
-  renderSplitInputs(splitContainer, trip, splitType, amountInput, manuallyEdited);
+  renderSplitInputs(splitContainer, trip, splitType, amountInput, manuallyEdited, paidBySelect);
+
+  // Re-render split rows when payer changes so badge moves
+  paidBySelect.addEventListener('change', () => {
+    renderSplitInputs(splitContainer, trip, splitType, amountInput, manuallyEdited, paidBySelect);
+  });
 
   amountInput.addEventListener('input', () => {
     if (splitType === 'custom') {
@@ -164,14 +169,21 @@ function buildExpenseForm(trip, rootContainer) {
   return card;
 }
 
-function renderSplitInputs(container, trip, splitType, amountInput, manuallyEdited) {
+function renderSplitInputs(container, trip, splitType, amountInput, manuallyEdited, paidBySelect) {
   clearEl(container);
   const totalAmount = parseFloat(amountInput.value) || 0;
   const perPerson = trip.people.length > 0 ? totalAmount / trip.people.length : 0;
+  const payerId = paidBySelect ? paidBySelect.value : null;
 
   trip.people.forEach(p => {
     const row = el('div', { className: 'split-row', 'data-person-id': p.id });
-    row.appendChild(el('span', { className: 'person-name', textContent: p.name }));
+    const nameContainer = el('span', { className: 'person-name' }, [
+      el('span', { textContent: p.name })
+    ]);
+    if (p.id === payerId) {
+      nameContainer.appendChild(el('span', { className: 'paid-badge', textContent: 'paid' }));
+    }
+    row.appendChild(nameContainer);
 
     if (splitType === 'equal') {
       const cb = el('input', {
