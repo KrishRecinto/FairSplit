@@ -35,7 +35,32 @@ function buildCreateForm(onTripSelected) {
   ]);
 
   const nameInput = el('input', { type: 'text', placeholder: 'e.g. Iceland 2026', id: 'tripName' });
-  const currencyInput = el('input', { type: 'text', placeholder: '$', value: '$', id: 'tripCurrency', maxLength: '3' });
+  const currencyInput = el('select', { id: 'tripCurrency' });
+  const currencies = [
+    { symbol: '$', label: '$ — USD (US Dollar)' },
+    { symbol: '€', label: '€ — EUR (Euro)' },
+    { symbol: '£', label: '£ — GBP (British Pound)' },
+    { symbol: '¥', label: '¥ — JPY (Japanese Yen)' },
+    { symbol: '₩', label: '₩ — KRW (Korean Won)' },
+    { symbol: 'C$', label: 'C$ — CAD (Canadian Dollar)' },
+    { symbol: 'A$', label: 'A$ — AUD (Australian Dollar)' },
+    { symbol: '₹', label: '₹ — INR (Indian Rupee)' },
+    { symbol: '₱', label: '₱ — PHP (Philippine Peso)' },
+    { symbol: 'CHF', label: 'CHF — Swiss Franc' },
+    { symbol: 'R$', label: 'R$ — BRL (Brazilian Real)' },
+    { symbol: '₪', label: '₪ — ILS (Israeli Shekel)' },
+    { symbol: 'kr', label: 'kr — SEK / NOK / DKK (Krona)' },
+    { symbol: 'zł', label: 'zł — PLN (Polish Zloty)' },
+    { symbol: '฿', label: '฿ — THB (Thai Baht)' },
+    { symbol: 'RM', label: 'RM — MYR (Malaysian Ringgit)' },
+    { symbol: 'S$', label: 'S$ — SGD (Singapore Dollar)' },
+    { symbol: 'R', label: 'R — ZAR (South African Rand)' },
+    { symbol: '₫', label: '₫ — VND (Vietnamese Dong)' },
+    { symbol: 'Mex$', label: 'Mex$ — MXN (Mexican Peso)' },
+  ];
+  currencies.forEach(c => {
+    currencyInput.appendChild(el('option', { value: c.symbol, textContent: c.label }));
+  });
   const peopleInput = el('input', { type: 'text', placeholder: 'Alice, Bob, Charlie', id: 'tripPeople' });
 
   form.appendChild(el('div', { className: 'form-group' }, [
@@ -45,7 +70,7 @@ function buildCreateForm(onTripSelected) {
 
   form.appendChild(el('div', { className: 'form-row' }, [
     el('div', { className: 'form-group' }, [
-      el('label', { textContent: 'Currency Symbol' }),
+      el('label', { textContent: 'Currency' }),
       currencyInput
     ]),
     el('div', { className: 'form-group' }, [
