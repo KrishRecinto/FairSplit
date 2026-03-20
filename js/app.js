@@ -47,6 +47,7 @@ function initTheme() {
 function initAuth() {
   const loginScreen = document.getElementById('loginScreen');
   const content = document.getElementById('content');
+  const loadingScreen = document.getElementById('loadingScreen');
   const googleBtn = document.getElementById('googleSignIn');
   const userBtn = document.getElementById('userBtn');
 
@@ -65,9 +66,10 @@ function initAuth() {
   // Listen for auth state changes
   onAuth(async (user) => {
     if (user) {
-      // Logged in
+      // Logged in — show loading while Firestore loads
       loginScreen.style.display = 'none';
-      content.style.display = 'block';
+      loadingScreen.style.display = 'flex';
+      content.style.display = 'none';
 
       // Show user button with initial
       userBtn.style.display = 'flex';
@@ -104,6 +106,8 @@ function initAuth() {
             const result = await store.joinTripByCode(joinCode);
             if (result.success) {
               store.setActiveTrip(result.trip.id);
+              loadingScreen.style.display = 'none';
+              content.style.display = 'block';
               enterTripMode(result.trip);
               return;
             }
@@ -113,6 +117,8 @@ function initAuth() {
         }
 
         // Show app
+        loadingScreen.style.display = 'none';
+        content.style.display = 'block';
         const data = store.load();
         if (data.activeTripId && data.trips.find(t => t.id === data.activeTripId)) {
           enterTripMode(store.getActiveTrip());
@@ -121,7 +127,8 @@ function initAuth() {
         }
       } catch (err) {
         console.error('Init error:', err);
-        // Still show trip list even if init partially fails
+        loadingScreen.style.display = 'none';
+        content.style.display = 'block';
         showTripList();
       }
     } else {
