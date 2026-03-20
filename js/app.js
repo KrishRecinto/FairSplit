@@ -83,11 +83,9 @@ function initAuth() {
       };
 
       try {
-        // Init store with Firestore data
-        await store.initStore(user.uid);
-
-        // Set up real-time sync
-        unsubTrips = store.onTripsChange(user.uid, () => {
+        // Init store and set up real-time sync in one step
+        store.initStore(user.uid);
+        const { unsub, ready } = store.onTripsChange(user.uid, () => {
           // When trips update from another device, refresh current view
           if (currentView === 'trips') {
             showTripList();
@@ -96,6 +94,10 @@ function initAuth() {
             if (trip) switchToView(currentView);
           }
         });
+        unsubTrips = unsub;
+
+        // Wait for first data load (instant from cache on return visits)
+        await ready;
 
         // Check for ?join=CODE in URL
         const joinCode = new URLSearchParams(window.location.search).get('join');

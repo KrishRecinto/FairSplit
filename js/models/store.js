@@ -59,22 +59,26 @@ export async function joinTripByCode(code) {
 
 // --- Init: load from Firestore and set up real-time sync ---
 
-export async function initStore(userId) {
+export function initStore(userId) {
   cachedData.userId = userId;
   cachedData.activeTripId = localStorage.getItem('fairsplit_activeTripId') || null;
-  // Initial load
-  try {
-    cachedData.trips = await fb.loadTrips(userId);
-  } catch (err) {
-    console.error('Failed to load trips from Firestore:', err);
-    cachedData.trips = [];
-  }
 }
 
-// Set up real-time listener (returns unsubscribe function)
+// Set up real-time listener that also handles initial load
+// Returns a promise that resolves after first data fetch + unsubscribe function
 export function onTripsChange(userId, callback) {
-  return fb.onTripsSnapshot(userId, (trips) => {
+  let initialLoad = true;
+  let resolveReady;
+  const ready = new Promise(r => { resolveReady = r; });
+
+  const unsub = fb.onTripsSnapshot(userId, (trips) => {
     cachedData.trips = trips;
+    if (initialLoad) {
+      initialLoad = false;
+      resolveReady();
+    }
     callback(trips);
   });
+
+  return { unsub, ready };
 }
