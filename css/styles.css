@@ -956,6 +956,47 @@ body {
   background-position: bottom;
 }
 
+/* Share code */
+.share-code-label {
+  font-size: 0.75rem;
+  font-family: 'Courier New', Courier, monospace;
+  color: var(--primary);
+  margin-top: 4px;
+  letter-spacing: 1px;
+}
+
+.trip-card-actions {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+/* Join code input */
+.join-code-input {
+  width: 100%;
+  padding: 9px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 1.1rem;
+  font-family: 'Courier New', Courier, monospace;
+  letter-spacing: 3px;
+  text-align: center;
+  text-transform: uppercase;
+  color: var(--text);
+  background: var(--card);
+}
+
+.join-code-input:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px var(--primary-bg);
+}
+
+[data-theme="dark"] .join-code-input {
+  background: #0f172a;
+  color: var(--text);
+}
+
 /* People chips input */
 .person-input-row {
   display: flex;

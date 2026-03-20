@@ -40,6 +40,23 @@ export async function deleteTrip(tripId) {
   await fb.deleteTrip(tripId);
 }
 
+// --- Join trip by share code ---
+
+export async function joinTripByCode(code) {
+  if (!cachedData.userId) return { success: false, error: 'Not signed in' };
+  const trip = await fb.findTripByShareCode(code);
+  if (!trip) return { success: false, error: 'Trip not found. Check the code and try again.' };
+  if (trip.memberUids && trip.memberUids.includes(cachedData.userId)) {
+    return { success: true, trip, alreadyMember: true };
+  }
+  await fb.joinTrip(trip.id, cachedData.userId);
+  // Add to cache
+  trip.memberUids = trip.memberUids || [];
+  trip.memberUids.push(cachedData.userId);
+  cachedData.trips.push(trip);
+  return { success: true, trip, alreadyMember: false };
+}
+
 // --- Init: load from Firestore and set up real-time sync ---
 
 export async function initStore(userId) {

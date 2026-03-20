@@ -1,6 +1,6 @@
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
 import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
-import { getFirestore, collection, doc, setDoc, getDoc, getDocs, deleteDoc, onSnapshot, query, where } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+import { getFirestore, collection, doc, setDoc, getDoc, getDocs, deleteDoc, onSnapshot, query, where, updateDoc, arrayUnion } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
 
 const firebaseConfig = {
   apiKey: "AIzaSyDbPhfLjyXnxsDtlNeRNrQYSJM2NI5CQK0",
@@ -54,6 +54,21 @@ export async function getTrip(tripId) {
 
 export async function deleteTrip(tripId) {
   await deleteDoc(doc(db, 'trips', tripId));
+}
+
+// Find trip by share code
+export async function findTripByShareCode(code) {
+  const q = query(collection(db, 'trips'), where('shareCode', '==', code.toUpperCase()));
+  const snapshot = await getDocs(q);
+  if (snapshot.empty) return null;
+  return snapshot.docs[0].data();
+}
+
+// Join a trip (add user to memberUids)
+export async function joinTrip(tripId, userId) {
+  await updateDoc(doc(db, 'trips', tripId), {
+    memberUids: arrayUnion(userId)
+  });
 }
 
 // Real-time listener for a single trip

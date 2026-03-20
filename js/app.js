@@ -94,6 +94,19 @@ function initAuth() {
         }
       });
 
+      // Check for ?join=CODE in URL
+      const joinCode = new URLSearchParams(window.location.search).get('join');
+      if (joinCode) {
+        // Clear the URL parameter
+        window.history.replaceState({}, '', window.location.pathname);
+        const result = await store.joinTripByCode(joinCode);
+        if (result.success) {
+          store.setActiveTrip(result.trip.id);
+          enterTripMode(result.trip);
+          return;
+        }
+      }
+
       // Show app
       const data = store.load();
       if (data.activeTripId && data.trips.find(t => t.id === data.activeTripId)) {

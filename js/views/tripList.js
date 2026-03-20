@@ -13,6 +13,7 @@ export function renderTripList(container, onTripSelected) {
       el('h3', { textContent: 'Welcome to FairSplit' }),
       el('p', { textContent: 'Split trip expenses fairly with custom ratios, see who paid what, and settle up with minimal transactions.' })
     ]),
+    buildJoinForm(onTripSelected),
     buildCreateForm(onTripSelected),
   ]);
 
@@ -27,6 +28,57 @@ export function renderTripList(container, onTripSelected) {
   }
 
   container.appendChild(wrapper);
+}
+
+function buildJoinForm(onTripSelected) {
+  const form = el('div', { className: 'card' }, [
+    el('div', { className: 'card-title', textContent: 'Join a Trip' }),
+    el('p', { className: 'text-muted', style: { fontSize: '0.85rem', marginBottom: '10px' }, textContent: 'Enter a 6-character code shared by the trip creator.' }),
+  ]);
+
+  const codeInput = el('input', {
+    type: 'text',
+    placeholder: 'e.g. ABC123',
+    maxLength: '6',
+    className: 'join-code-input',
+    id: 'joinCode'
+  });
+  // Auto uppercase
+  codeInput.addEventListener('input', () => {
+    codeInput.value = codeInput.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+  });
+
+  const joinMsg = el('div', { id: 'joinMsg', style: { marginTop: '8px' } });
+
+  const joinBtn = el('button', {
+    className: 'btn btn-primary',
+    textContent: 'Join Trip',
+    onClick: async () => {
+      const code = codeInput.value.trim();
+      if (code.length !== 6) {
+        joinMsg.textContent = 'Please enter a 6-character code.';
+        joinMsg.className = 'people-hint invalid';
+        return;
+      }
+      joinBtn.disabled = true;
+      joinBtn.textContent = 'Joining...';
+      const result = await store.joinTripByCode(code);
+      if (result.success) {
+        store.setActiveTrip(result.trip.id);
+        onTripSelected(result.trip);
+      } else {
+        joinMsg.textContent = result.error;
+        joinMsg.className = 'people-hint invalid';
+        joinBtn.disabled = false;
+        joinBtn.textContent = 'Join Trip';
+      }
+    }
+  });
+
+  const row = el('div', { className: 'person-input-row' }, [codeInput, joinBtn]);
+  form.appendChild(row);
+  form.appendChild(joinMsg);
+  return form;
 }
 
 function buildCreateForm(onTripSelected) {
@@ -175,21 +227,44 @@ function buildCreateForm(onTripSelected) {
 }
 
 function buildTripCard(trip, onTripSelected) {
+  const shareCode = trip.shareCode || '------';
+  const shareUrl = `${window.location.origin}?join=${shareCode}`;
+
+  const copyBtn = el('button', {
+    className: 'btn btn-secondary btn-sm',
+    textContent: 'Share',
+    onClick: (e) => {
+      e.stopPropagation();
+      if (navigator.clipboard) {
+        navigator.clipboard.writeText(shareUrl).then(() => {
+          copyBtn.textContent = 'Copied!';
+          setTimeout(() => { copyBtn.textContent = 'Share'; }, 2000);
+        });
+      } else {
+        prompt('Copy this link:', shareUrl);
+      }
+    }
+  });
+
   const card = el('div', { className: 'card', style: { cursor: 'pointer' } }, [
     el('div', { className: 'flex-between' }, [
       el('div', {}, [
         el('div', { className: 'card-title', textContent: trip.name }),
-        el('div', { className: 'text-muted', style: { fontSize: '0.85rem' }, textContent: `${trip.people.length} people · ${trip.expenses.length} expenses` })
+        el('div', { className: 'text-muted', style: { fontSize: '0.85rem' }, textContent: `${trip.people.length} people · ${trip.expenses.length} expenses` }),
+        el('div', { className: 'share-code-label', textContent: `Code: ${shareCode}` })
       ]),
-      el('button', {
-        className: 'btn btn-primary btn-sm',
-        textContent: 'Open',
-        onClick: (e) => {
-          e.stopPropagation();
-          store.setActiveTrip(trip.id);
-          onTripSelected(trip);
-        }
-      })
+      el('div', { className: 'trip-card-actions' }, [
+        copyBtn,
+        el('button', {
+          className: 'btn btn-primary btn-sm',
+          textContent: 'Open',
+          onClick: (e) => {
+            e.stopPropagation();
+            store.setActiveTrip(trip.id);
+            onTripSelected(trip);
+          }
+        })
+      ])
     ])
   ]);
 
