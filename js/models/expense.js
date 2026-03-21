@@ -1,6 +1,6 @@
 import { generateId, todayStr } from '../utils/dom.js';
 
-export const CATEGORIES = ['accommodation', 'food', 'transport', 'activities', 'shopping', 'other'];
+export const CATEGORIES = ['accommodation', 'food', 'drinks', 'transport', 'activities', 'shopping', 'other'];
 
 export function createExpense(description, amount, paidBy, splits, category = 'other', date = null) {
   return {
