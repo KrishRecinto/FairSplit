@@ -246,6 +246,17 @@ function buildTripCard(trip, onTripSelected) {
     }
   });
 
+  const deleteBtn = el('button', {
+    className: 'btn btn-danger btn-sm',
+    textContent: 'Delete',
+    onClick: (e) => {
+      e.stopPropagation();
+      if (confirm(`Delete "${trip.name}"? This cannot be undone.`)) {
+        store.deleteTrip(trip.id);
+      }
+    }
+  });
+
   const card = el('div', { className: 'card', style: { cursor: 'pointer' } }, [
     el('div', { className: 'flex-between' }, [
       el('div', {}, [
@@ -263,7 +274,8 @@ function buildTripCard(trip, onTripSelected) {
             store.setActiveTrip(trip.id);
             onTripSelected(trip);
           }
-        })
+        }),
+        deleteBtn
       ])
     ])
   ]);
