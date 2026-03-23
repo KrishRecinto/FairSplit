@@ -1,7 +1,7 @@
 import { showView } from './utils/dom.js';
 import * as store from './models/store.js';
 import { createPerson } from './models/person.js';
-import { signInWithGoogle, logOut, onAuth } from './firebase.js';
+import { signInWithGoogle, signInAnonymously, logOut, onAuth, findTripByShareCode } from './firebase.js';
 import { renderTripList, populateTripDropdown } from './views/tripList.js';
 import { renderExpenses } from './views/expenses.js';
 import { renderDashboard } from './views/dashboard.js';
@@ -68,13 +68,16 @@ function initAuth() {
     if (user) {
       // Logged in — show loading while Firestore loads
       loginScreen.style.display = 'none';
+      document.getElementById('guestJoinScreen').style.display = 'none';
       loadingScreen.style.display = 'flex';
       content.style.display = 'none';
 
       // Show user button with initial
+      const guestName = localStorage.getItem('fairsplit_guestName');
+      const displayName = user.displayName || guestName || user.email || 'Guest';
       userBtn.style.display = 'flex';
-      userBtn.textContent = (user.displayName || user.email || '?')[0].toUpperCase();
-      userBtn.title = `${user.displayName || user.email} — Click to sign out`;
+      userBtn.textContent = displayName[0].toUpperCase();
+      userBtn.title = `${displayName} — Click to sign out`;
       userBtn.onclick = async () => {
         if (confirm('Sign out?')) {
           if (unsubTrips) unsubTrips();
@@ -134,15 +137,98 @@ function initAuth() {
         showTripList();
       }
     } else {
-      // Logged out — show login, hide everything else
+      // Logged out — check if this is a join link
+      const joinCode = new URLSearchParams(window.location.search).get('join');
       loadingScreen.style.display = 'none';
-      loginScreen.style.display = 'flex';
       content.style.display = 'none';
       userBtn.style.display = 'none';
       document.getElementById('tabBar').style.display = 'none';
       document.getElementById('tripSelector').style.display = 'none';
+
+      if (joinCode) {
+        // Show guest join screen
+        loginScreen.style.display = 'none';
+        showGuestJoinScreen(joinCode);
+      } else {
+        // Show regular login
+        loginScreen.style.display = 'flex';
+        document.getElementById('guestJoinScreen').style.display = 'none';
+      }
     }
   });
+}
+
+// --- Guest Join ---
+
+async function showGuestJoinScreen(joinCode) {
+  const guestScreen = document.getElementById('guestJoinScreen');
+  const guestNameInput = document.getElementById('guestNameInput');
+  const guestJoinBtn = document.getElementById('guestJoinBtn');
+  const guestJoinMsg = document.getElementById('guestJoinMsg');
+  const guestTripName = document.getElementById('guestTripName');
+  const switchToLogin = document.getElementById('guestSwitchToLogin');
+
+  guestScreen.style.display = 'flex';
+  guestJoinMsg.textContent = '';
+
+  // Try to fetch trip name to show in the header
+  try {
+    const trip = await findTripByShareCode(joinCode);
+    if (trip) {
+      guestTripName.textContent = `Join "${trip.name}"`;
+    } else {
+      guestTripName.textContent = 'Trip not found';
+      guestJoinMsg.textContent = 'This invite link may be invalid or expired.';
+      guestJoinBtn.disabled = true;
+      return;
+    }
+  } catch (e) {
+    // Couldn't fetch trip name, that's okay
+  }
+
+  // Switch to Google login instead
+  switchToLogin.onclick = () => {
+    guestScreen.style.display = 'none';
+    document.getElementById('loginScreen').style.display = 'flex';
+  };
+
+  // Handle guest join
+  async function handleGuestJoin() {
+    const name = guestNameInput.value.trim();
+    if (!name) {
+      guestJoinMsg.textContent = 'Please enter your name.';
+      guestNameInput.focus();
+      return;
+    }
+
+    guestJoinBtn.disabled = true;
+    guestJoinBtn.textContent = 'Joining...';
+    guestJoinMsg.textContent = '';
+
+    try {
+      // Sign in anonymously — this triggers the onAuth callback
+      // which will handle the join via the ?join= param still in the URL
+      await signInAnonymously();
+      // Store the guest's display name locally
+      localStorage.setItem('fairsplit_guestName', name);
+      // onAuth will fire and handle the rest (join code is still in URL)
+    } catch (err) {
+      console.error('Guest join error:', err);
+      guestJoinMsg.textContent = 'Something went wrong. Please try again.';
+      guestJoinBtn.disabled = false;
+      guestJoinBtn.textContent = 'Join Trip';
+    }
+  }
+
+  guestJoinBtn.onclick = handleGuestJoin;
+  guestNameInput.onkeydown = (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      handleGuestJoin();
+    }
+  };
+
+  guestNameInput.focus();
 }
 
 // --- Add Member ---

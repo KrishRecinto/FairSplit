@@ -69,6 +69,22 @@
     </div>
   </div>
 
+  <!-- Guest join screen (for share link visitors) -->
+  <div class="login-screen" id="guestJoinScreen" style="display:none;">
+    <div class="login-card">
+      <div class="login-icon">$</div>
+      <h2 id="guestTripName">You've been invited!</h2>
+      <p>Enter your name to join this trip and start adding expenses.</p>
+      <input type="text" id="guestNameInput" placeholder="Your name" style="width:100%;padding:12px;border-radius:8px;border:1px solid var(--border);font-size:1rem;margin-bottom:12px;box-sizing:border-box;">
+      <button class="btn btn-primary btn-block" id="guestJoinBtn">Join Trip</button>
+      <div id="guestJoinMsg" style="margin-top:8px;color:var(--danger);font-size:0.85rem;"></div>
+      <div style="margin-top:16px;text-align:center;">
+        <span style="font-size:0.85rem;color:var(--text-muted);">Have an account?</span>
+        <button class="btn btn-secondary btn-sm" id="guestSwitchToLogin" style="margin-left:6px;">Sign in with Google</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Loading spinner (shown by default — acts as initial state) -->
   <div class="loading-screen" id="loadingScreen" style="display:flex;">
     <div class="spinner"></div>
