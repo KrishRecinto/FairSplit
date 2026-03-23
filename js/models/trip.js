@@ -1,11 +1,11 @@
 import { generateId } from '../utils/dom.js';
 
 export const GROUP_TYPES = [
-  { key: 'trip', icon: '✈️', label: 'Trip' },
-  { key: 'household', icon: '🏠', label: 'Household' },
-  { key: 'dinner', icon: '🍽️', label: 'Dinner' },
-  { key: 'event', icon: '🎉', label: 'Event' },
-  { key: 'other', icon: '📋', label: 'Other' }
+  { key: 'trip', label: 'Trip' },
+  { key: 'household', label: 'Household' },
+  { key: 'meals', label: 'Meals' },
+  { key: 'event', label: 'Event' },
+  { key: 'other', label: 'Other' }
 ];
 
 function generateShareCode() {
