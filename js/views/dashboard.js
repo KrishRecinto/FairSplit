@@ -1,5 +1,6 @@
 import { el, clearEl } from '../utils/dom.js';
 import { computeBalances } from '../algorithms/settlement.js';
+import { CATEGORY_EMOJI } from '../models/expense.js';
 
 let chartInstance = null;
 
@@ -119,7 +120,7 @@ function renderCategoryChart(canvas, trip) {
   const colors = ['#4f46e5', '#16a34a', '#f59e0b', '#dc2626', '#8b5cf6', '#ec4899'];
 
   const datasets = catList.map((cat, i) => ({
-    label: cat.charAt(0).toUpperCase() + cat.slice(1),
+    label: `${CATEGORY_EMOJI[cat] || ''} ${cat.charAt(0).toUpperCase() + cat.slice(1)}`,
     data: trip.people.map(p => (personCategories[p.id][cat] || 0)),
     backgroundColor: colors[i % colors.length],
     borderRadius: 4

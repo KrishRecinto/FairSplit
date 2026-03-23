@@ -1,6 +1,6 @@
 import { el, clearEl, todayStr } from '../utils/dom.js';
 import { formatMoney, computeSplitAmounts } from '../utils/currency.js';
-import { createExpense, equalSplits, CATEGORIES } from '../models/expense.js';
+import { createExpense, equalSplits, CATEGORIES, CATEGORY_EMOJI } from '../models/expense.js';
 import * as store from '../models/store.js';
 
 let editingExpenseId = null;
@@ -22,7 +22,8 @@ function buildExpenseForm(trip, rootContainer) {
   const dateInput = el('input', { type: 'date', value: todayStr(), id: 'expDate' });
   const categorySelect = el('select', { id: 'expCategory' });
   CATEGORIES.forEach(c => {
-    categorySelect.appendChild(el('option', { value: c, textContent: c.charAt(0).toUpperCase() + c.slice(1) }));
+    const emoji = CATEGORY_EMOJI[c] || '';
+    categorySelect.appendChild(el('option', { value: c, textContent: `${emoji} ${c.charAt(0).toUpperCase() + c.slice(1)}` }));
   });
 
   const paidBySelect = el('select', { id: 'expPaidBy' });
@@ -378,7 +379,8 @@ function buildExpenseList(trip, rootContainer) {
       el('div', { className: 'expense-desc', textContent: exp.description }),
       el('div', { className: 'expense-meta', textContent: `${payer ? payer.name : '?'} paid · ${exp.date}` }),
     ]));
-    header.appendChild(el('span', { className: 'category-tag', textContent: exp.category }));
+    const catEmoji = CATEGORY_EMOJI[exp.category] || '';
+    header.appendChild(el('span', { className: 'category-tag', textContent: `${catEmoji} ${exp.category}` }));
     header.appendChild(el('div', { className: 'expense-amount', textContent: `${trip.currency}${exp.amount.toFixed(2)}` }));
 
     const details = el('div', { className: 'expense-details' });

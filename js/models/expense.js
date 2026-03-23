@@ -1,6 +1,18 @@
 import { generateId, todayStr } from '../utils/dom.js';
 
-export const CATEGORIES = ['accommodation', 'food', 'drinks', 'transport', 'activities', 'shopping', 'other'];
+export const CATEGORIES = ['accommodation', 'food', 'drinks', 'transport', 'activities', 'shopping', 'flights', 'utilities', 'other'];
+
+export const CATEGORY_EMOJI = {
+  accommodation: '🏨',
+  food: '🍔',
+  drinks: '🍺',
+  transport: '🚗',
+  activities: '🎟️',
+  shopping: '🛒',
+  flights: '✈️',
+  utilities: '⚡',
+  other: '💰'
+};
 
 export function createExpense(description, amount, paidBy, splits, category = 'other', date = null) {
   return {
