@@ -1,5 +1,5 @@
 import { el, clearEl } from '../utils/dom.js';
-import { createTrip } from '../models/trip.js';
+import { createTrip, GROUP_TYPES } from '../models/trip.js';
 import { createPerson } from '../models/person.js';
 import * as store from '../models/store.js';
 
@@ -11,7 +11,7 @@ export function renderTripList(container, onTripSelected) {
     el('div', { className: 'empty-state' }, [
       el('div', { className: 'empty-state-icon', textContent: '$' }),
       el('h3', { textContent: 'Welcome to FairSplit' }),
-      el('p', { textContent: 'Split trip expenses fairly with custom ratios, see who paid what, and settle up with minimal transactions.' })
+      el('p', { textContent: 'Split expenses fairly with friends — trips, dinners, rent, and more.' })
     ]),
     buildJoinForm(onTripSelected),
     buildCreateForm(onTripSelected),
@@ -19,7 +19,7 @@ export function renderTripList(container, onTripSelected) {
 
   if (data.trips.length > 0) {
     const listSection = el('div', { className: 'mt-16' }, [
-      el('div', { className: 'section-title', textContent: 'Your Trips' })
+      el('div', { className: 'section-title', textContent: 'Your Groups' })
     ]);
     data.trips.forEach(trip => {
       listSection.appendChild(buildTripCard(trip, onTripSelected));
@@ -83,8 +83,29 @@ function buildJoinForm(onTripSelected) {
 
 function buildCreateForm(onTripSelected) {
   const form = el('div', { className: 'card' }, [
-    el('div', { className: 'card-title', textContent: 'Create a Trip' }),
+    el('div', { className: 'card-title', textContent: 'Create a Group' }),
   ]);
+
+  // Group type selector
+  let selectedType = 'trip';
+  const typeToggle = el('div', { className: 'group-type-toggle' });
+  GROUP_TYPES.forEach(gt => {
+    const btn = el('button', {
+      className: gt.key === selectedType ? 'active' : '',
+      textContent: `${gt.icon} ${gt.label}`,
+      onClick: () => {
+        selectedType = gt.key;
+        typeToggle.querySelectorAll('button').forEach(b => b.className = '');
+        btn.className = 'active';
+      }
+    });
+    typeToggle.appendChild(btn);
+  });
+
+  form.appendChild(el('div', { className: 'form-group' }, [
+    el('label', { textContent: 'Type' }),
+    typeToggle
+  ]));
 
   const nameInput = el('input', { type: 'text', placeholder: 'e.g. Iceland 2026', id: 'tripName' });
   const currencyInput = el('select', { id: 'tripCurrency' });
@@ -214,7 +235,7 @@ function buildCreateForm(onTripSelected) {
         return;
       }
 
-      const trip = createTrip(name, currency);
+      const trip = createTrip(name, currency, selectedType);
       trip.people = peopleNames.map(n => createPerson(n));
       store.saveTrip(trip);
       store.setActiveTrip(trip.id);
@@ -257,11 +278,16 @@ function buildTripCard(trip, onTripSelected) {
     }
   });
 
+  const typeInfo = GROUP_TYPES.find(gt => gt.key === (trip.type || 'trip')) || GROUP_TYPES[0];
+
   const card = el('div', { className: 'card', style: { cursor: 'pointer' } }, [
     el('div', { className: 'flex-between' }, [
       el('div', {}, [
-        el('div', { className: 'card-title', textContent: trip.name }),
-        el('div', { className: 'text-muted', style: { fontSize: '0.85rem' }, textContent: `${trip.people.length} people · ${trip.expenses.length} expenses` }),
+        el('div', { className: 'card-title' }, [
+          el('span', { className: 'group-type-icon', textContent: typeInfo.icon }),
+          el('span', { textContent: trip.name })
+        ]),
+        el('div', { className: 'text-muted', style: { fontSize: '0.85rem' }, textContent: `${typeInfo.label} · ${trip.people.length} people · ${trip.expenses.length} expenses` }),
         el('div', { className: 'share-code-label', textContent: `Code: ${shareCode}` })
       ]),
       el('div', { className: 'trip-card-actions' }, [
