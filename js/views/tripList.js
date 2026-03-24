@@ -32,8 +32,8 @@ export function renderTripList(container, onTripSelected) {
 
 function buildJoinForm(onTripSelected) {
   const form = el('div', { className: 'card' }, [
-    el('div', { className: 'card-title', textContent: 'Join a Trip' }),
-    el('p', { className: 'text-muted', style: { fontSize: '0.85rem', marginBottom: '10px' }, textContent: 'Enter a 6-character code shared by the trip creator.' }),
+    el('div', { className: 'card-title', textContent: 'Join a Group' }),
+    el('p', { className: 'text-muted', style: { fontSize: '0.85rem', marginBottom: '10px' }, textContent: 'Enter a 6-character code shared by the group creator.' }),
   ]);
 
   const codeInput = el('input', {
@@ -52,7 +52,7 @@ function buildJoinForm(onTripSelected) {
 
   const joinBtn = el('button', {
     className: 'btn btn-primary',
-    textContent: 'Join Trip',
+    textContent: 'Join Group',
     onClick: async () => {
       const code = codeInput.value.trim();
       if (code.length !== 6) {
@@ -234,7 +234,7 @@ function buildCreateForm(onTripSelected) {
 
   const createBtn = el('button', {
     className: 'btn btn-primary btn-block',
-    textContent: 'Create Trip',
+    textContent: 'Create Group',
     onClick: () => {
       const name = nameInput.value.trim();
       const currency = currencyInput.value.trim() || '$';
@@ -329,7 +329,7 @@ export function populateTripDropdown(dropdown, onTripChanged) {
     dropdown.appendChild(opt);
   });
 
-  const newOpt = el('option', { value: '__new__', textContent: '+ New Trip' });
+  const newOpt = el('option', { value: '__new__', textContent: '+ New Group' });
   dropdown.appendChild(newOpt);
 
   dropdown.onchange = () => {

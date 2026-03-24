@@ -177,7 +177,7 @@ async function showGuestJoinScreen(joinCode) {
     if (trip) {
       guestTripName.textContent = `Join "${trip.name}"`;
     } else {
-      guestTripName.textContent = 'Trip not found';
+      guestTripName.textContent = 'Group not found';
       guestJoinMsg.textContent = 'This invite link may be invalid or expired.';
       guestJoinBtn.disabled = true;
       return;
@@ -216,7 +216,7 @@ async function showGuestJoinScreen(joinCode) {
       console.error('Guest join error:', err);
       guestJoinMsg.textContent = 'Something went wrong. Please try again.';
       guestJoinBtn.disabled = false;
-      guestJoinBtn.textContent = 'Join Trip';
+      guestJoinBtn.textContent = 'Join Group';
     }
   }
 
