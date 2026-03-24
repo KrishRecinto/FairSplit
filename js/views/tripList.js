@@ -97,7 +97,29 @@ function buildCreateForm(onTripSelected) {
     typeSelect
   ]));
 
-  const nameInput = el('input', { type: 'text', placeholder: 'e.g. Iceland 2026', id: 'tripName' });
+  const placeholders = {
+    trip: 'e.g. Iceland 2026',
+    household: 'e.g. Apartment 4B',
+    meals: 'e.g. Friday dinner',
+    event: 'e.g. Birthday party',
+    other: 'e.g. Group name'
+  };
+  const nameLabels = {
+    trip: 'Trip Name',
+    household: 'Household Name',
+    meals: 'Meal Name',
+    event: 'Event Name',
+    other: 'Group Name'
+  };
+
+  const nameInput = el('input', { type: 'text', placeholder: placeholders.trip, id: 'tripName' });
+  const nameLabel = el('label', { textContent: 'Trip Name' });
+
+  typeSelect.addEventListener('change', () => {
+    const t = typeSelect.value;
+    nameInput.placeholder = placeholders[t] || placeholders.other;
+    nameLabel.textContent = nameLabels[t] || nameLabels.other;
+  });
   const currencyInput = el('select', { id: 'tripCurrency' });
   const currencies = [
     { symbol: '$', label: '$ — USD (US Dollar)' },
@@ -194,7 +216,7 @@ function buildCreateForm(onTripSelected) {
   }
 
   form.appendChild(el('div', { className: 'form-group' }, [
-    el('label', { textContent: 'Trip Name' }),
+    nameLabel,
     nameInput
   ]));
 
