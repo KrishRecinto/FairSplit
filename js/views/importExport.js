@@ -6,50 +6,22 @@ import * as store from '../models/store.js';
 export function renderImportExport(container, trip) {
   clearEl(container);
 
-  // Import section
-  container.appendChild(el('div', { className: 'section-title', textContent: 'Import Expenses' }));
+  // Receipt shown automatically at the top
+  const receiptArea = el('div', { id: 'receiptArea' });
+  container.appendChild(receiptArea);
 
-  const fileInput = el('input', { type: 'file', accept: '.csv' });
-  const dropZone = el('div', { className: 'file-drop' }, [
-    fileInput,
-    el('div', { className: 'file-drop-text' }, [
-      el('strong', { textContent: 'Click to upload' }),
-      document.createTextNode(' or drag and drop a CSV file')
-    ]),
-    el('div', { className: 'text-muted', style: { fontSize: '0.8rem', marginTop: '6px' }, textContent: 'Columns: date, description, amount, category, paid_by, split_type, split_details' })
-  ]);
+  if (trip.expenses.length > 0) {
+    showReceipt(trip, container);
+  } else {
+    receiptArea.appendChild(el('div', { className: 'card', style: { textAlign: 'center', padding: '24px' } }, [
+      el('div', { style: { fontSize: '2rem', marginBottom: '8px' }, textContent: '\uD83E\uDDFE' }),
+      el('p', { className: 'text-muted', textContent: 'Your receipt will appear here once you add expenses.' })
+    ]));
+  }
 
-  dropZone.onclick = () => fileInput.click();
-  dropZone.ondragover = (e) => { e.preventDefault(); dropZone.classList.add('dragover'); };
-  dropZone.ondragleave = () => dropZone.classList.remove('dragover');
-  dropZone.ondrop = (e) => {
-    e.preventDefault();
-    dropZone.classList.remove('dragover');
-    const file = e.dataTransfer.files[0];
-    if (file) handleFile(file, trip, container);
-  };
-
-  fileInput.onchange = () => {
-    if (fileInput.files[0]) handleFile(fileInput.files[0], trip, container);
-  };
-
-  container.appendChild(dropZone);
-
-  const previewArea = el('div', { id: 'importPreview' });
-  container.appendChild(previewArea);
-
-  // Export section
-  container.appendChild(el('div', { className: 'section-title', textContent: 'Export' }));
-
+  // Export buttons
   const exportCard = el('div', { className: 'card' }, [
     el('div', { className: 'flex gap-8', style: { flexWrap: 'wrap' } }, [
-      el('button', {
-        className: 'btn btn-primary',
-        textContent: 'View Receipt',
-        onClick: () => {
-          showReceipt(trip, container);
-        }
-      }),
       el('button', {
         className: 'btn btn-secondary',
         textContent: 'Export CSV',
@@ -78,25 +50,55 @@ export function renderImportExport(container, trip) {
 
   container.appendChild(exportCard);
 
-  // Receipt container
-  const receiptArea = el('div', { id: 'receiptArea' });
-  container.appendChild(receiptArea);
+  // Import section (collapsed by default)
+  const importToggle = el('div', {
+    className: 'section-title',
+    style: { cursor: 'pointer', userSelect: 'none' },
+    textContent: '\u25B8 Import from CSV',
+    onClick: () => {
+      if (importSection.style.display === 'none') {
+        importSection.style.display = 'block';
+        importToggle.textContent = '\u25BE Import from CSV';
+      } else {
+        importSection.style.display = 'none';
+        importToggle.textContent = '\u25B8 Import from CSV';
+      }
+    }
+  });
+  container.appendChild(importToggle);
 
-  // CSV format help
-  container.appendChild(el('div', { className: 'section-title', textContent: 'CSV Format Guide' }));
-  const help = el('div', { className: 'card' });
-  help.innerHTML = `
-    <div style="font-size:0.85rem; line-height:1.7">
-      <strong>Required columns:</strong> date, description, amount, paid_by<br>
-      <strong>Optional columns:</strong> category, split_type, split_details<br><br>
-      <strong>split_type:</strong> "equal" (default) or "custom"<br>
-      <strong>split_details:</strong> For custom splits, use "Name:Percent,Name:Percent"<br><br>
-      <strong>Example:</strong><br>
-      <code style="background:#f1f5f9; padding:8px; display:block; border-radius:6px; font-size:0.8rem; overflow-x:auto; white-space:nowrap">
-2026-03-15,Hotel,450.00,accommodation,Alice,custom,"Alice:50,Bob:30,Charlie:20"</code>
-    </div>
-  `;
-  container.appendChild(help);
+  const importSection = el('div', { style: { display: 'none' } });
+
+  const fileInput = el('input', { type: 'file', accept: '.csv' });
+  const dropZone = el('div', { className: 'file-drop' }, [
+    fileInput,
+    el('div', { className: 'file-drop-text' }, [
+      el('strong', { textContent: 'Click to upload' }),
+      document.createTextNode(' or drag and drop a CSV file')
+    ]),
+    el('div', { className: 'text-muted', style: { fontSize: '0.8rem', marginTop: '6px' }, textContent: 'Columns: date, description, amount, category, paid_by, split_type, split_details' })
+  ]);
+
+  dropZone.onclick = () => fileInput.click();
+  dropZone.ondragover = (e) => { e.preventDefault(); dropZone.classList.add('dragover'); };
+  dropZone.ondragleave = () => dropZone.classList.remove('dragover');
+  dropZone.ondrop = (e) => {
+    e.preventDefault();
+    dropZone.classList.remove('dragover');
+    const file = e.dataTransfer.files[0];
+    if (file) handleFile(file, trip, container);
+  };
+
+  fileInput.onchange = () => {
+    if (fileInput.files[0]) handleFile(fileInput.files[0], trip, container);
+  };
+
+  importSection.appendChild(dropZone);
+
+  const previewArea = el('div', { id: 'importPreview' });
+  importSection.appendChild(previewArea);
+
+  container.appendChild(importSection);
 }
 
 function handleFile(file, trip, rootContainer) {
