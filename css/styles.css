@@ -383,6 +383,8 @@ body {
   color: var(--text);
   background: var(--card);
   transition: border-color 0.2s;
+  box-sizing: border-box;
+  max-width: 100%;
 }
 
 .form-group input:focus,
