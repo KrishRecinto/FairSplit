@@ -351,6 +351,8 @@ body {
   padding: 16px;
   margin-bottom: 12px;
   box-shadow: var(--shadow);
+  overflow: hidden;
+  box-sizing: border-box;
 }
 
 .card-title {
@@ -385,6 +387,12 @@ body {
   transition: border-color 0.2s;
   box-sizing: border-box;
   max-width: 100%;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.form-group input[type="date"] {
+  text-align: center;
 }
 
 .form-group input:focus,
