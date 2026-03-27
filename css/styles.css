@@ -1163,4 +1163,43 @@ body {
   .summary-cards {
     grid-template-columns: 1fr;
   }
+
+  .app-header {
+    padding: 10px 12px;
+  }
+
+  .logo {
+    font-size: 1.1rem;
+  }
+
+  .header-right {
+    gap: 6px !important;
+  }
+
+  .add-member-text {
+    display: none;
+  }
+
+  .add-member-btn {
+    padding: 0 8px;
+    font-size: 0.9rem;
+  }
+
+  .header-right select {
+    max-width: 110px;
+    font-size: 0.8rem;
+    padding: 4px 6px;
+  }
+
+  .user-btn {
+    width: 28px;
+    height: 28px;
+    font-size: 0.7rem;
+  }
+
+  .theme-toggle {
+    width: 28px;
+    height: 28px;
+    font-size: 1rem;
+  }
 }
