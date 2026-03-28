@@ -2,20 +2,45 @@ import { el, clearEl } from '../utils/dom.js';
 import { createTrip, GROUP_TYPES } from '../models/trip.js';
 import { createPerson } from '../models/person.js';
 import * as store from '../models/store.js';
+import { promptSignIn } from '../app.js';
 
 export function renderTripList(container, onTripSelected) {
   clearEl(container);
   const data = store.load();
+  const signedIn = store.isSignedIn();
 
   const wrapper = el('div', {}, [
     el('div', { className: 'empty-state' }, [
       el('div', { className: 'empty-state-icon', textContent: '$' }),
       el('h3', { textContent: 'Welcome to FairSplit' }),
-      el('p', { textContent: 'Split expenses fairly with friends — trips, dinners, rent, and more.' })
+      el('p', { textContent: 'Split expenses fairly with friends — trips, meals, rent, and more.' })
     ]),
-    buildJoinForm(onTripSelected),
-    buildCreateForm(onTripSelected),
   ]);
+
+  // Sign-in banner (only if not signed in and has trips)
+  if (!signedIn) {
+    const signInBanner = el('div', { className: 'card sign-in-banner' }, [
+      el('div', { style: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px' } }, [
+        el('div', {}, [
+          el('div', { className: 'card-title', style: { fontSize: '0.95rem', marginBottom: '4px' }, textContent: 'Sign in to share & sync' }),
+          el('div', { className: 'text-muted', style: { fontSize: '0.8rem' }, textContent: 'Your data is saved locally. Sign in to collaborate and sync across devices.' }),
+        ]),
+        el('button', {
+          className: 'btn btn-google btn-sm',
+          innerHTML: '<svg width="14" height="14" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg> Sign in',
+          onClick: () => promptSignIn()
+        })
+      ])
+    ]);
+    wrapper.appendChild(signInBanner);
+  }
+
+  // Only show Join form if signed in (requires Firestore)
+  if (signedIn) {
+    wrapper.appendChild(buildJoinForm(onTripSelected));
+  }
+
+  wrapper.appendChild(buildCreateForm(onTripSelected));
 
   if (data.trips.length > 0) {
     const listSection = el('div', { className: 'mt-16' }, [
@@ -266,8 +291,18 @@ function buildTripCard(trip, onTripSelected) {
   const copyBtn = el('button', {
     className: 'btn btn-secondary btn-sm',
     textContent: 'Share',
-    onClick: (e) => {
+    onClick: async (e) => {
       e.stopPropagation();
+      // If not signed in, prompt sign-in first
+      if (!store.isSignedIn()) {
+        copyBtn.textContent = 'Signing in...';
+        const success = await promptSignIn();
+        if (!success) {
+          copyBtn.textContent = 'Share';
+        }
+        // After sign-in, the view will re-render with share codes
+        return;
+      }
       if (navigator.clipboard) {
         navigator.clipboard.writeText(shareUrl).then(() => {
           copyBtn.textContent = 'Copied!';

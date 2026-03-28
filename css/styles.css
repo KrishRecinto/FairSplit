@@ -443,6 +443,11 @@ body {
 }
 .btn-danger:hover { background: #fecaca; }
 
+.sign-in-banner {
+  background: var(--primary-bg);
+  border: 1px dashed var(--primary);
+}
+
 .btn-success {
   background: var(--success-bg);
   color: var(--success);
