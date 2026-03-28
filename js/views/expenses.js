@@ -40,7 +40,7 @@ function buildExpenseForm(trip, rootContainer) {
       el('label', { textContent: `Amount (${trip.currency})` }), amountInput
     ]),
     el('div', { className: 'form-group' }, [
-      el('label', { textContent: 'Date' }), dateInput
+      el('label', { innerHTML: 'Date <span style="color:var(--text-muted);font-weight:400;font-size:0.8rem">(optional)</span>' }), dateInput
     ])
   ]));
 
