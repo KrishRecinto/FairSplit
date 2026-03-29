@@ -148,7 +148,7 @@ async function handleSignedIn(user, joinCode) {
   // Init Firestore store
   store.initStore(user.uid);
 
-  // Set up real-time sync
+  // Set up real-time sync listener (runs in background)
   if (unsubTrips) unsubTrips();
   const { unsub, ready } = store.onTripsChange(user.uid, () => {
     if (currentView === 'trips') {
@@ -160,18 +160,15 @@ async function handleSignedIn(user, joinCode) {
   });
   unsubTrips = unsub;
 
-  // Show loading while Firestore loads (8s timeout so it never hangs forever)
-  loadingScreen.style.display = 'flex';
-  content.style.display = 'none';
-  await Promise.race([ready, new Promise(r => setTimeout(r, 8000))]);
-
-  // Migrate any local trips to Firestore
-  await store.migrateLocalTrips(user.uid);
-
   // Handle join code if present (from URL or manual entry as guest)
   const effectiveJoinCode = joinCode || pendingJoinCode;
   if (pendingJoinCode) pendingJoinCode = null;
+
   if (effectiveJoinCode) {
+    // Fast path: skip waiting for trips snapshot — new joiners have no existing trips.
+    // Go straight to the join operation (saves 1-3s of Firestore roundtrip).
+    loadingScreen.style.display = 'flex';
+    content.style.display = 'none';
     window.history.replaceState({}, '', window.location.pathname);
     try {
       const result = await store.joinTripByCode(effectiveJoinCode);
@@ -185,7 +182,16 @@ async function handleSignedIn(user, joinCode) {
     } catch (joinErr) {
       console.error('Join trip error:', joinErr);
     }
+    // If join failed, fall through to show normal app
   }
+
+  // Regular path: wait for trips snapshot then show app (8s timeout to prevent hangs)
+  loadingScreen.style.display = 'flex';
+  content.style.display = 'none';
+  await Promise.race([ready, new Promise(r => setTimeout(r, 8000))]);
+
+  // Migrate any local trips to Firestore
+  await store.migrateLocalTrips(user.uid);
 
   // Show app
   loadingScreen.style.display = 'none';
