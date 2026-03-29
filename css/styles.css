@@ -752,6 +752,87 @@ body {
   color: var(--primary);
 }
 
+/* Settle hero cards (Receipt tab) */
+.settle-hero-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--primary);
+  border-radius: var(--radius);
+  padding: 18px 20px;
+  margin-bottom: 10px;
+  box-shadow: var(--shadow-md);
+}
+
+.settle-hero-card.paid {
+  opacity: 0.45;
+  text-decoration: line-through;
+  border-left-color: var(--success);
+}
+
+.settle-hero-names {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.settle-from, .settle-to {
+  font-weight: 600;
+  font-size: 1.05rem;
+}
+
+.settle-hero-arrow {
+  color: var(--primary);
+  font-size: 1.4rem;
+  font-weight: bold;
+}
+
+.settle-hero-amount {
+  margin-left: auto;
+  font-weight: 800;
+  font-size: 1.25rem;
+  color: var(--primary);
+  white-space: nowrap;
+}
+
+.settle-hero-done {
+  background: var(--success-bg);
+  border: 1px solid var(--success);
+  border-radius: var(--radius);
+  padding: 28px 20px;
+  margin: 16px 0 12px;
+  text-align: center;
+  color: var(--success);
+}
+
+/* Expenses accordion */
+.expenses-accordion-toggle {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-muted);
+  margin: 20px 0 10px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.expenses-accordion-toggle:hover {
+  color: var(--primary);
+}
+
+.expenses-accordion-summary {
+  text-transform: none;
+  font-weight: 500;
+  font-size: 0.82rem;
+  letter-spacing: 0;
+}
+
 /* Chart container */
 .chart-container {
   background: var(--card);
@@ -881,7 +962,45 @@ body {
 .flex { display: flex; }
 .flex-between { display: flex; justify-content: space-between; align-items: center; }
 
-/* Receipt */
+/* Receipt trip header */
+.receipt-trip-header {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px 16px;
+  margin-bottom: 12px;
+  box-shadow: var(--shadow);
+  text-align: center;
+}
+
+.receipt-trip-name {
+  font-size: 1.3rem;
+  font-weight: 700;
+  letter-spacing: -0.3px;
+  margin-bottom: 4px;
+}
+
+.receipt-trip-date {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  margin-bottom: 6px;
+}
+
+.receipt-trip-members {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+/* Receipt total row */
+.receipt-total-row td {
+  font-weight: 700;
+  font-size: 0.95rem;
+  border-top: 2px solid var(--border) !important;
+  border-bottom: none !important;
+  color: var(--primary);
+}
+
+/* Receipt (legacy — kept for reference, unused) */
 .receipt {
   max-width: 380px;
   margin: 20px auto;
@@ -1185,6 +1304,16 @@ body {
 
   .summary-cards {
     grid-template-columns: 1fr;
+  }
+
+  .settle-hero-card {
+    flex-wrap: wrap;
+  }
+
+  .settle-hero-amount {
+    margin-left: 0;
+    width: 100%;
+    text-align: right;
   }
 
   .app-header {

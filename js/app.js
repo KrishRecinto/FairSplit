@@ -5,14 +5,12 @@ import { signInWithGoogle, signInAnonymously, logOut, onAuth, findTripByShareCod
 import { renderTripList, populateTripDropdown } from './views/tripList.js';
 import { renderExpenses } from './views/expenses.js';
 import { renderDashboard } from './views/dashboard.js';
-import { renderSettle } from './views/settle.js';
 import { renderImportExport } from './views/importExport.js';
 
 const viewContainers = {
   trips: () => document.getElementById('view-trips'),
   expenses: () => document.getElementById('view-expenses'),
   dashboard: () => document.getElementById('view-dashboard'),
-  settle: () => document.getElementById('view-settle'),
   import: () => document.getElementById('view-import')
 };
 
@@ -369,9 +367,6 @@ function switchToView(view) {
       break;
     case 'dashboard':
       renderDashboard(viewContainers.dashboard(), trip);
-      break;
-    case 'settle':
-      renderSettle(viewContainers.settle(), trip);
       break;
     case 'import':
       renderImportExport(viewContainers.import(), trip);

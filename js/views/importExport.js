@@ -6,21 +6,18 @@ import * as store from '../models/store.js';
 export function renderImportExport(container, trip) {
   clearEl(container);
 
-  // Receipt shown automatically at the top
-  const receiptArea = el('div', { id: 'receiptArea' });
-  container.appendChild(receiptArea);
-
-  if (trip.expenses.length > 0) {
-    showReceipt(trip, container);
-  } else {
-    receiptArea.appendChild(el('div', { className: 'card', style: { textAlign: 'center', padding: '24px' } }, [
-      el('div', { style: { fontSize: '2rem', marginBottom: '8px' }, textContent: '\uD83E\uDDFE' }),
-      el('p', { className: 'text-muted', textContent: 'Your receipt will appear here once you add expenses.' })
+  if (trip.expenses.length === 0) {
+    container.appendChild(el('div', { className: 'empty-state' }, [
+      el('div', { className: 'empty-state-icon', textContent: '🧾' }),
+      el('h3', { textContent: 'No expenses yet' }),
+      el('p', { textContent: 'Add some expenses to see your receipt and settle up.' })
     ]));
+  } else {
+    renderReceipt(container, trip);
   }
 
   // Export buttons
-  const exportCard = el('div', { className: 'card' }, [
+  container.appendChild(el('div', { className: 'card' }, [
     el('div', { className: 'flex gap-8', style: { flexWrap: 'wrap' } }, [
       el('button', {
         className: 'btn btn-secondary',
@@ -46,29 +43,26 @@ export function renderImportExport(container, trip) {
         }
       })
     ])
-  ]);
+  ]));
 
-  container.appendChild(exportCard);
-
-  // Import section (collapsed by default)
+  // Import section (collapsed)
   const importToggle = el('div', {
     className: 'section-title',
     style: { cursor: 'pointer', userSelect: 'none' },
-    textContent: '\u25B8 Import from CSV',
+    textContent: '▸ Import from CSV',
     onClick: () => {
       if (importSection.style.display === 'none') {
         importSection.style.display = 'block';
-        importToggle.textContent = '\u25BE Import from CSV';
+        importToggle.textContent = '▾ Import from CSV';
       } else {
         importSection.style.display = 'none';
-        importToggle.textContent = '\u25B8 Import from CSV';
+        importToggle.textContent = '▸ Import from CSV';
       }
     }
   });
   container.appendChild(importToggle);
 
   const importSection = el('div', { style: { display: 'none' } });
-
   const fileInput = el('input', { type: 'file', accept: '.csv' });
   const dropZone = el('div', { className: 'file-drop' }, [
     fileInput,
@@ -88,24 +82,136 @@ export function renderImportExport(container, trip) {
     const file = e.dataTransfer.files[0];
     if (file) handleFile(file, trip, container);
   };
-
   fileInput.onchange = () => {
     if (fileInput.files[0]) handleFile(fileInput.files[0], trip, container);
   };
 
   importSection.appendChild(dropZone);
-
-  const previewArea = el('div', { id: 'importPreview' });
-  importSection.appendChild(previewArea);
-
+  importSection.appendChild(el('div', { id: 'importPreview' }));
   container.appendChild(importSection);
+}
+
+function renderReceipt(container, trip) {
+  const sorted = [...trip.expenses].sort((a, b) => new Date(a.date) - new Date(b.date));
+  const totalSpent = sorted.reduce((s, e) => s + e.amount, 0);
+  const balances = computeBalances(trip);
+  const settlements = computeSettlements(balances, trip.people);
+
+  // Date range
+  let dateRange = '';
+  if (sorted.length > 0) {
+    const first = sorted[0].date;
+    const last = sorted[sorted.length - 1].date;
+    dateRange = first === last ? first : `${first} – ${last}`;
+  }
+
+  // --- Trip header ---
+  const headerCard = el('div', { className: 'receipt-trip-header' });
+  headerCard.appendChild(el('div', { className: 'receipt-trip-name', textContent: trip.name }));
+  if (dateRange) {
+    headerCard.appendChild(el('div', { className: 'receipt-trip-date', textContent: dateRange }));
+  }
+  headerCard.appendChild(el('div', { className: 'receipt-trip-members', textContent: trip.people.map(p => p.name).join(' · ') }));
+  container.appendChild(headerCard);
+
+  // --- Settle Up (hero) ---
+  if (settlements.length === 0) {
+    container.appendChild(el('div', { className: 'settle-hero-done' }, [
+      el('div', { style: { fontSize: '2rem', marginBottom: '4px' }, textContent: '\u2713' }),
+      el('div', { style: { fontWeight: '700', fontSize: '1.1rem', marginBottom: '2px' }, textContent: 'All Settled!' }),
+      el('div', { style: { fontSize: '0.85rem', opacity: '0.8' }, textContent: 'No payments needed' })
+    ]));
+  } else {
+    container.appendChild(
+      el('div', { className: 'text-muted mb-8', style: { fontSize: '0.85rem', marginTop: '16px' } },
+        [`${settlements.length} payment${settlements.length > 1 ? 's' : ''} to settle up`]
+      )
+    );
+
+    settlements.forEach(s => {
+      const card = el('div', { className: 'settle-hero-card' });
+      const paidBtn = el('button', {
+        className: 'btn btn-success btn-sm',
+        textContent: 'Paid',
+        onClick: () => {
+          card.classList.toggle('paid');
+          paidBtn.textContent = card.classList.contains('paid') ? 'Undo' : 'Paid';
+        }
+      });
+
+      const names = el('div', { className: 'settle-hero-names' }, [
+        el('span', { className: 'settle-from', textContent: s.fromName }),
+        el('span', { className: 'settle-hero-arrow', textContent: '\u2192' }),
+        el('span', { className: 'settle-to', textContent: s.toName })
+      ]);
+
+      card.appendChild(names);
+      card.appendChild(el('span', { className: 'settle-hero-amount', textContent: `${trip.currency}${s.amount.toFixed(2)}` }));
+      card.appendChild(paidBtn);
+      container.appendChild(card);
+    });
+  }
+
+  // --- Expenses (collapsible) ---
+  const expBody = el('div', { style: { display: 'none' } });
+  const expToggle = el('div', {
+    className: 'expenses-accordion-toggle',
+    onClick: () => {
+      if (expBody.style.display === 'none') {
+        expBody.style.display = 'block';
+        expToggle.querySelector('.expenses-chevron').textContent = '\u25BE';
+      } else {
+        expBody.style.display = 'none';
+        expToggle.querySelector('.expenses-chevron').textContent = '\u25B8';
+      }
+    }
+  }, [
+    el('span', {}, [
+      el('span', { className: 'expenses-chevron', textContent: '\u25B8' }),
+      document.createTextNode(' Expenses')
+    ]),
+    el('span', { className: 'expenses-accordion-summary', textContent: `${sorted.length} expense${sorted.length !== 1 ? 's' : ''} \u00B7 Total: ${trip.currency}${totalSpent.toFixed(2)}` })
+  ]);
+  container.appendChild(expToggle);
+
+  const expCard = el('div', { className: 'card', style: { padding: '0', overflow: 'hidden' } });
+  const table = el('table', { className: 'data-table' });
+  const thead = el('thead', {}, [
+    el('tr', {}, [
+      el('th', { textContent: 'Description' }),
+      el('th', { textContent: 'Paid By' }),
+      el('th', { style: { textAlign: 'right' }, textContent: 'Amount' })
+    ])
+  ]);
+  const tbody = el('tbody');
+
+  sorted.forEach(exp => {
+    const payer = trip.people.find(p => p.id === exp.paidBy);
+    tbody.appendChild(el('tr', {}, [
+      el('td', { textContent: exp.description }),
+      el('td', { style: { color: 'var(--text-muted)', fontSize: '0.85rem' }, textContent: payer ? payer.name : '?' }),
+      el('td', { style: { textAlign: 'right', fontWeight: '600' }, textContent: `${trip.currency}${exp.amount.toFixed(2)}` })
+    ]));
+  });
+
+  // Total row
+  tbody.appendChild(el('tr', { className: 'receipt-total-row' }, [
+    el('td', { textContent: 'Total' }),
+    el('td'),
+    el('td', { style: { textAlign: 'right' }, textContent: `${trip.currency}${totalSpent.toFixed(2)}` })
+  ]));
+
+  table.appendChild(thead);
+  table.appendChild(tbody);
+  expCard.appendChild(table);
+  expBody.appendChild(expCard);
+  container.appendChild(expBody);
 }
 
 function handleFile(file, trip, rootContainer) {
   const reader = new FileReader();
   reader.onload = (e) => {
-    const text = e.target.result;
-    const { expenses, errors } = parseExpenseCsv(text, trip);
+    const { expenses, errors } = parseExpenseCsv(e.target.result, trip);
     showPreview(expenses, errors, trip, rootContainer);
   };
   reader.readAsText(file);
@@ -129,7 +235,6 @@ function showPreview(expenses, errors, trip, rootContainer) {
 
   preview.appendChild(el('div', { className: 'validation-msg success', textContent: `${expenses.length} expense(s) ready to import` }));
 
-  // Preview table
   const table = el('table', { className: 'data-table' });
   const thead = el('thead', {}, [
     el('tr', {}, [
@@ -166,132 +271,10 @@ function showPreview(expenses, errors, trip, rootContainer) {
     onClick: () => {
       const activeTrip = store.getActiveTrip();
       expenses.forEach(exp => {
-        activeTrip.expenses.push({
-          id: generateId('exp'),
-          ...exp
-        });
+        activeTrip.expenses.push({ id: generateId('exp'), ...exp });
       });
       store.saveTrip(activeTrip);
       renderImportExport(rootContainer, activeTrip);
     }
   }));
-}
-
-function showReceipt(trip, rootContainer) {
-  const area = document.getElementById('receiptArea');
-  if (!area) return;
-  clearEl(area);
-
-  const sorted = [...trip.expenses].sort((a, b) => new Date(a.date) - new Date(b.date));
-  const totalSpent = sorted.reduce((s, e) => s + e.amount, 0);
-  const balances = computeBalances(trip);
-  const settlements = computeSettlements(balances, trip.people);
-
-  // Date range
-  let dateRange = '';
-  if (sorted.length > 0) {
-    const first = sorted[0].date;
-    const last = sorted[sorted.length - 1].date;
-    dateRange = first === last ? first : `${first}  to  ${last}`;
-  }
-
-  // Per-person totals (what they paid)
-  const paidTotals = {};
-  const owesTotals = {};
-  trip.people.forEach(p => { paidTotals[p.id] = 0; owesTotals[p.id] = 0; });
-  trip.expenses.forEach(exp => {
-    paidTotals[exp.paidBy] = (paidTotals[exp.paidBy] || 0) + exp.amount;
-    const totalPct = exp.splits.reduce((s, sp) => s + sp.percent, 0);
-    exp.splits.forEach(sp => {
-      owesTotals[sp.personId] = (owesTotals[sp.personId] || 0) + (exp.amount * sp.percent / totalPct);
-    });
-  });
-
-  const receipt = el('div', { className: 'receipt' });
-
-  // Header
-  const header = el('div', { className: 'receipt-header' });
-  header.appendChild(el('div', { className: 'receipt-title', textContent: trip.name }));
-  if (dateRange) {
-    header.appendChild(el('div', { className: 'receipt-date', textContent: dateRange }));
-  }
-  header.appendChild(el('div', { className: 'receipt-people', textContent: trip.people.map(p => p.name).join('  \u00b7  ') }));
-  receipt.appendChild(header);
-
-  receipt.appendChild(el('div', { className: 'receipt-divider' }));
-
-  // Itemized expenses
-  const itemsHeader = el('div', { className: 'receipt-row receipt-row-header' });
-  itemsHeader.appendChild(el('span', { textContent: 'ITEM' }));
-  itemsHeader.appendChild(el('span', { textContent: 'PAID BY' }));
-  itemsHeader.appendChild(el('span', { textContent: 'AMOUNT' }));
-  receipt.appendChild(itemsHeader);
-
-  receipt.appendChild(el('div', { className: 'receipt-divider-thin' }));
-
-  sorted.forEach(exp => {
-    const payer = trip.people.find(p => p.id === exp.paidBy);
-    const row = el('div', { className: 'receipt-row' });
-    row.appendChild(el('span', { className: 'receipt-item-desc', textContent: exp.description }));
-    row.appendChild(el('span', { className: 'receipt-item-payer', textContent: payer ? payer.name : '?' }));
-    row.appendChild(el('span', { className: 'receipt-item-amount', textContent: `${trip.currency}${exp.amount.toFixed(2)}` }));
-    receipt.appendChild(row);
-  });
-
-  receipt.appendChild(el('div', { className: 'receipt-divider' }));
-
-  // Total
-  const totalRow = el('div', { className: 'receipt-row receipt-total' });
-  totalRow.appendChild(el('span', { textContent: 'TOTAL' }));
-  totalRow.appendChild(el('span'));
-  totalRow.appendChild(el('span', { textContent: `${trip.currency}${totalSpent.toFixed(2)}` }));
-  receipt.appendChild(totalRow);
-
-  receipt.appendChild(el('div', { className: 'receipt-divider' }));
-
-  // Per person breakdown
-  receipt.appendChild(el('div', { className: 'receipt-section-title', textContent: 'PER PERSON' }));
-  receipt.appendChild(el('div', { className: 'receipt-divider-thin' }));
-
-  trip.people.forEach(p => {
-    const paid = paidTotals[p.id] || 0;
-    const owes = owesTotals[p.id] || 0;
-    const net = paid - owes;
-    const row = el('div', { className: 'receipt-row' });
-    row.appendChild(el('span', { textContent: p.name }));
-    row.appendChild(el('span', { className: 'receipt-person-detail', textContent: `paid ${trip.currency}${paid.toFixed(2)}` }));
-    row.appendChild(el('span', {
-      className: net >= 0 ? 'receipt-net positive' : 'receipt-net negative',
-      textContent: net >= 0 ? `+${trip.currency}${net.toFixed(2)}` : `-${trip.currency}${Math.abs(net).toFixed(2)}`
-    }));
-    receipt.appendChild(row);
-  });
-
-  // Settlements
-  if (settlements.length > 0) {
-    receipt.appendChild(el('div', { className: 'receipt-divider' }));
-    receipt.appendChild(el('div', { className: 'receipt-section-title', textContent: 'SETTLE UP' }));
-    receipt.appendChild(el('div', { className: 'receipt-divider-thin' }));
-
-    settlements.forEach(s => {
-      const row = el('div', { className: 'receipt-row' });
-      row.appendChild(el('span', { textContent: `${s.fromName}  \u2192  ${s.toName}` }));
-      row.appendChild(el('span'));
-      row.appendChild(el('span', { className: 'receipt-settle-amount', textContent: `${trip.currency}${s.amount.toFixed(2)}` }));
-      receipt.appendChild(row);
-    });
-  }
-
-  receipt.appendChild(el('div', { className: 'receipt-divider' }));
-
-  // Footer
-  const footer = el('div', { className: 'receipt-footer' });
-  footer.appendChild(el('div', { textContent: 'Generated by FairSplit' }));
-  footer.appendChild(el('div', { textContent: new Date().toLocaleDateString() }));
-  receipt.appendChild(footer);
-
-  // Zigzag bottom edge
-  receipt.appendChild(el('div', { className: 'receipt-tear' }));
-
-  area.appendChild(receipt);
 }
