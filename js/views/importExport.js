@@ -16,12 +16,31 @@ export function renderImportExport(container, trip) {
     renderReceipt(container, trip);
   }
 
+  // Import / Export section (collapsed)
+  const ieToggle = el('div', {
+    className: 'section-title',
+    style: { cursor: 'pointer', userSelect: 'none' },
+    textContent: '▸ Import / Export',
+    onClick: () => {
+      if (ieSection.style.display === 'none') {
+        ieSection.style.display = 'block';
+        ieToggle.textContent = '▾ Import / Export';
+      } else {
+        ieSection.style.display = 'none';
+        ieToggle.textContent = '▸ Import / Export';
+      }
+    }
+  });
+  container.appendChild(ieToggle);
+
+  const ieSection = el('div', { style: { display: 'none' } });
+
   // Export buttons
-  container.appendChild(el('div', { className: 'card' }, [
+  ieSection.appendChild(el('div', { className: 'card' }, [
     el('div', { className: 'flex gap-8', style: { flexWrap: 'wrap' } }, [
       el('button', {
         className: 'btn btn-secondary',
-        textContent: 'Export CSV',
+        textContent: 'Download Expenses',
         onClick: () => {
           const csv = exportExpensesCsv(trip);
           downloadCsv(csv, `${trip.name.replace(/\s+/g, '_')}_expenses.csv`);
@@ -29,7 +48,7 @@ export function renderImportExport(container, trip) {
       }),
       el('button', {
         className: 'btn btn-secondary',
-        textContent: 'Export Settlements CSV',
+        textContent: 'Download Settlements',
         onClick: () => {
           const balances = computeBalances(trip);
           const settlements = computeSettlements(balances, trip.people);
@@ -45,24 +64,7 @@ export function renderImportExport(container, trip) {
     ])
   ]));
 
-  // Import section (collapsed)
-  const importToggle = el('div', {
-    className: 'section-title',
-    style: { cursor: 'pointer', userSelect: 'none' },
-    textContent: '▸ Import from CSV',
-    onClick: () => {
-      if (importSection.style.display === 'none') {
-        importSection.style.display = 'block';
-        importToggle.textContent = '▾ Import from CSV';
-      } else {
-        importSection.style.display = 'none';
-        importToggle.textContent = '▸ Import from CSV';
-      }
-    }
-  });
-  container.appendChild(importToggle);
-
-  const importSection = el('div', { style: { display: 'none' } });
+  // Import drop zone
   const fileInput = el('input', { type: 'file', accept: '.csv' });
   const dropZone = el('div', { className: 'file-drop' }, [
     fileInput,
@@ -86,9 +88,9 @@ export function renderImportExport(container, trip) {
     if (fileInput.files[0]) handleFile(fileInput.files[0], trip, container);
   };
 
-  importSection.appendChild(dropZone);
-  importSection.appendChild(el('div', { id: 'importPreview' }));
-  container.appendChild(importSection);
+  ieSection.appendChild(dropZone);
+  ieSection.appendChild(el('div', { id: 'importPreview' }));
+  container.appendChild(ieSection);
 }
 
 function renderReceipt(container, trip) {
