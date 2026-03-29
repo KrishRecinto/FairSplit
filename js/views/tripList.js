@@ -10,14 +10,14 @@ export function renderTripList(container, onTripSelected) {
   const signedIn = store.isSignedIn();
 
   const wrapper = el('div', {}, [
-    el('div', { className: 'empty-state' }, [
+    el('div', { className: 'empty-state', style: { paddingBottom: '24px' } }, [
       el('div', { className: 'empty-state-icon', textContent: '$' }),
       el('h3', { textContent: 'Welcome to FairSplit' }),
-      el('p', { textContent: 'Split expenses fairly with friends — trips, meals, rent, and more.' })
+      el('p', { style: { marginBottom: '0' }, textContent: 'Split expenses fairly with friends — trips, meals, rent, and more.' })
     ]),
   ]);
 
-  // Sign-in banner (only if not signed in and has trips)
+  // Sign-in banner (only if not signed in)
   if (!signedIn) {
     const signInBanner = el('div', { className: 'card sign-in-banner' }, [
       el('div', { style: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px' } }, [
@@ -35,12 +35,55 @@ export function renderTripList(container, onTripSelected) {
     wrapper.appendChild(signInBanner);
   }
 
-  // Only show Join form if signed in (requires Firestore)
-  if (signedIn) {
-    wrapper.appendChild(buildJoinForm(onTripSelected));
-  }
+  // Two action buttons
+  const formContainer = el('div');
+  let activeForm = null;
 
-  wrapper.appendChild(buildCreateForm(onTripSelected));
+  const createBtn = el('button', {
+    className: 'btn btn-primary home-action-btn',
+    textContent: 'Create a Group',
+    onClick: () => {
+      if (activeForm === 'create') {
+        clearEl(formContainer);
+        activeForm = null;
+        createBtn.className = 'btn btn-primary home-action-btn';
+        return;
+      }
+      clearEl(formContainer);
+      formContainer.appendChild(buildCreateForm(onTripSelected));
+      activeForm = 'create';
+      createBtn.className = 'btn btn-primary home-action-btn active';
+      joinBtn.className = 'btn btn-secondary home-action-btn';
+    }
+  });
+
+  const joinBtn = el('button', {
+    className: 'btn btn-secondary home-action-btn',
+    textContent: 'Join a Group',
+    onClick: async () => {
+      if (activeForm === 'join') {
+        clearEl(formContainer);
+        activeForm = null;
+        joinBtn.className = 'btn btn-secondary home-action-btn';
+        return;
+      }
+      // Join requires sign-in
+      if (!store.isSignedIn()) {
+        joinBtn.textContent = 'Signing in...';
+        const success = await promptSignIn();
+        joinBtn.textContent = 'Join a Group';
+        if (!success) return;
+      }
+      clearEl(formContainer);
+      formContainer.appendChild(buildJoinForm(onTripSelected));
+      activeForm = 'join';
+      joinBtn.className = 'btn btn-secondary home-action-btn active';
+      createBtn.className = 'btn btn-primary home-action-btn';
+    }
+  });
+
+  wrapper.appendChild(el('div', { className: 'home-action-buttons' }, [createBtn, joinBtn]));
+  wrapper.appendChild(formContainer);
 
   if (data.trips.length > 0) {
     const listSection = el('div', { className: 'mt-16' }, [

@@ -338,6 +338,32 @@ function enterTripMode(trip) {
   document.getElementById('tabBar').style.display = 'flex';
   document.getElementById('tripSelector').style.display = 'flex';
 
+  // Share button
+  const shareBtn = document.getElementById('shareBtn');
+  shareBtn.style.display = 'flex';
+  shareBtn.onclick = async () => {
+    if (!store.isSignedIn()) {
+      shareBtn.textContent = 'Signing in...';
+      const success = await promptSignIn();
+      if (!success) { shareBtn.textContent = 'Share'; return; }
+    }
+    const currentTrip = store.getActiveTrip();
+    if (!currentTrip || !currentTrip.shareCode) {
+      shareBtn.textContent = 'No code';
+      setTimeout(() => { shareBtn.textContent = 'Share'; }, 2000);
+      return;
+    }
+    const shareUrl = `${window.location.origin}?join=${currentTrip.shareCode}`;
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(shareUrl).then(() => {
+        shareBtn.textContent = 'Copied!';
+        setTimeout(() => { shareBtn.textContent = 'Share'; }, 2000);
+      });
+    } else {
+      prompt('Copy this link:', shareUrl);
+    }
+  };
+
   populateTripDropdown(document.getElementById('tripDropdown'), (selectedTrip) => {
     if (selectedTrip) {
       enterTripMode(selectedTrip);
