@@ -23,7 +23,7 @@ export function renderTripList(container, onTripSelected) {
 
   const createBtn = el('button', {
     className: 'btn btn-primary home-action-btn',
-    textContent: 'New Group',
+    textContent: 'Start a Split',
     onClick: () => {
       if (activeForm === 'create') {
         clearEl(formContainer);
