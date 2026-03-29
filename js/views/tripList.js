@@ -93,13 +93,19 @@ function buildJoinForm(onTripSelected) {
 
   const codeInput = el('input', {
     type: 'text',
-    placeholder: 'e.g. ABC123',
-    maxLength: '6',
+    placeholder: 'Code or invite link',
     className: 'join-code-input',
     id: 'joinCode'
   });
   codeInput.addEventListener('input', () => {
-    codeInput.value = codeInput.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+    let val = codeInput.value.trim();
+    // Accept full invite URL — extract the code from ?join=CODE
+    const urlMatch = val.match(/[?&]join=([A-Za-z0-9]{6})/i);
+    if (urlMatch) {
+      codeInput.value = urlMatch[1].toUpperCase();
+    } else {
+      codeInput.value = val.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6);
+    }
   });
 
   const joinMsg = el('div', { id: 'joinMsg', style: { marginTop: '8px' } });
