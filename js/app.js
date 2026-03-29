@@ -17,6 +17,7 @@ const viewContainers = {
 let currentView = 'trips';
 let unsubTrips = null;
 let pendingJoinCode = null;
+let pendingShare = false;
 
 export function setPendingJoin(code) {
   pendingJoinCode = code;
@@ -159,10 +160,10 @@ async function handleSignedIn(user, joinCode) {
   });
   unsubTrips = unsub;
 
-  // Show loading while Firestore loads
+  // Show loading while Firestore loads (8s timeout so it never hangs forever)
   loadingScreen.style.display = 'flex';
   content.style.display = 'none';
-  await ready;
+  await Promise.race([ready, new Promise(r => setTimeout(r, 8000))]);
 
   // Migrate any local trips to Firestore
   await store.migrateLocalTrips(user.uid);
@@ -341,6 +342,24 @@ function showTripList() {
   });
 }
 
+function copyShareLink(btn) {
+  const currentTrip = store.getActiveTrip();
+  if (!currentTrip || !currentTrip.shareCode) {
+    btn.textContent = 'No code yet';
+    setTimeout(() => { btn.textContent = 'Share'; }, 2000);
+    return;
+  }
+  const shareUrl = `${window.location.origin}?join=${currentTrip.shareCode}`;
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(shareUrl).then(() => {
+      btn.textContent = 'Copied!';
+      setTimeout(() => { btn.textContent = 'Share'; }, 2000);
+    });
+  } else {
+    prompt('Copy this link:', shareUrl);
+  }
+}
+
 function enterTripMode(trip) {
   document.getElementById('tabBar').style.display = 'flex';
   document.getElementById('tripSelector').style.display = 'flex';
@@ -350,26 +369,22 @@ function enterTripMode(trip) {
   shareBtn.style.display = 'flex';
   shareBtn.onclick = async () => {
     if (!store.isSignedIn()) {
+      // Mark pending so enterTripMode auto-copies after sign-in + migration
+      pendingShare = true;
       shareBtn.textContent = 'Signing in...';
       const success = await promptSignIn();
-      if (!success) { shareBtn.textContent = 'Share'; return; }
-    }
-    const currentTrip = store.getActiveTrip();
-    if (!currentTrip || !currentTrip.shareCode) {
-      shareBtn.textContent = 'No code';
-      setTimeout(() => { shareBtn.textContent = 'Share'; }, 2000);
+      if (!success) { shareBtn.textContent = 'Share'; pendingShare = false; }
+      // handleSignedIn → enterTripMode will handle copying once migration is done
       return;
     }
-    const shareUrl = `${window.location.origin}?join=${currentTrip.shareCode}`;
-    if (navigator.clipboard) {
-      navigator.clipboard.writeText(shareUrl).then(() => {
-        shareBtn.textContent = 'Copied!';
-        setTimeout(() => { shareBtn.textContent = 'Share'; }, 2000);
-      });
-    } else {
-      prompt('Copy this link:', shareUrl);
-    }
+    copyShareLink(shareBtn);
   };
+
+  // Auto-copy if user just signed in to share
+  if (pendingShare) {
+    pendingShare = false;
+    copyShareLink(shareBtn);
+  }
 
   populateTripDropdown(document.getElementById('tripDropdown'), (selectedTrip) => {
     if (selectedTrip) {
