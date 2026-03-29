@@ -2,6 +2,7 @@ import { el, clearEl, todayStr } from '../utils/dom.js';
 import { formatMoney, computeSplitAmounts } from '../utils/currency.js';
 import { createExpense, equalSplits, CATEGORIES, CATEGORY_EMOJI } from '../models/expense.js';
 import * as store from '../models/store.js';
+import { promptSignIn } from '../app.js';
 
 let editingExpenseId = null;
 
@@ -442,6 +443,40 @@ function buildExpenseList(trip, rootContainer) {
     item.appendChild(details);
     list.appendChild(item);
   });
+
+  // Invite nudge at the bottom
+  const inviteBtn = el('button', {
+    className: 'btn btn-secondary invite-nudge-btn',
+    innerHTML: '🔗 Copy invite link',
+    onClick: async () => {
+      if (!store.isSignedIn()) {
+        inviteBtn.textContent = 'Signing in...';
+        const success = await promptSignIn();
+        inviteBtn.innerHTML = '🔗 Copy invite link';
+        if (!success) return;
+      }
+      const trip = store.getActiveTrip();
+      if (!trip || !trip.shareCode) {
+        inviteBtn.textContent = 'No code yet';
+        setTimeout(() => { inviteBtn.innerHTML = '🔗 Copy invite link'; }, 2000);
+        return;
+      }
+      const url = `${window.location.origin}?join=${trip.shareCode}`;
+      if (navigator.clipboard) {
+        navigator.clipboard.writeText(url).then(() => {
+          inviteBtn.textContent = 'Copied!';
+          setTimeout(() => { inviteBtn.innerHTML = '🔗 Copy invite link'; }, 2000);
+        });
+      } else {
+        prompt('Copy this link:', url);
+      }
+    }
+  });
+
+  list.appendChild(el('div', { className: 'invite-nudge' }, [
+    el('span', { className: 'invite-nudge-text', textContent: 'Split with more people?' }),
+    inviteBtn
+  ]));
 
   return list;
 }
