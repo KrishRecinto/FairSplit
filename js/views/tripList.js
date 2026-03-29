@@ -353,7 +353,7 @@ function buildTripCard(trip, onTripSelected) {
 
   const copyBtn = el('button', {
     className: 'btn btn-secondary btn-sm',
-    textContent: 'Share',
+    textContent: '🔗 Invite',
     onClick: async (e) => {
       e.stopPropagation();
       // If not signed in, prompt sign-in first
@@ -361,7 +361,7 @@ function buildTripCard(trip, onTripSelected) {
         copyBtn.textContent = 'Signing in...';
         const success = await promptSignIn();
         if (!success) {
-          copyBtn.textContent = 'Share';
+          copyBtn.textContent = '🔗 Invite';
         }
         // After sign-in, the view will re-render with share codes
         return;
@@ -369,7 +369,7 @@ function buildTripCard(trip, onTripSelected) {
       if (navigator.clipboard) {
         navigator.clipboard.writeText(shareUrl).then(() => {
           copyBtn.textContent = 'Copied!';
-          setTimeout(() => { copyBtn.textContent = 'Share'; }, 2000);
+          setTimeout(() => { copyBtn.textContent = '🔗 Invite'; }, 2000);
         });
       } else {
         prompt('Copy this link:', shareUrl);

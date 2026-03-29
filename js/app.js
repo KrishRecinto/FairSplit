@@ -352,14 +352,14 @@ function copyShareLink(btn) {
   const currentTrip = store.getActiveTrip();
   if (!currentTrip || !currentTrip.shareCode) {
     btn.textContent = 'No code yet';
-    setTimeout(() => { btn.textContent = 'Share'; }, 2000);
+    setTimeout(() => { btn.textContent = '🔗 Invite'; }, 2000);
     return;
   }
   const shareUrl = `${window.location.origin}?join=${currentTrip.shareCode}`;
   if (navigator.clipboard) {
     navigator.clipboard.writeText(shareUrl).then(() => {
       btn.textContent = 'Copied!';
-      setTimeout(() => { btn.textContent = 'Share'; }, 2000);
+      setTimeout(() => { btn.textContent = '🔗 Invite'; }, 2000);
     });
   } else {
     prompt('Copy this link:', shareUrl);
@@ -379,7 +379,7 @@ function enterTripMode(trip) {
       pendingShare = true;
       shareBtn.textContent = 'Signing in...';
       const success = await promptSignIn();
-      if (!success) { shareBtn.textContent = 'Share'; pendingShare = false; }
+      if (!success) { shareBtn.textContent = '🔗 Invite'; pendingShare = false; }
       // handleSignedIn → enterTripMode will handle copying once migration is done
       return;
     }
