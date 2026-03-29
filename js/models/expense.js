@@ -1,6 +1,6 @@
 import { generateId, todayStr } from '../utils/dom.js';
 
-export const CATEGORIES = ['accommodation', 'food', 'drinks', 'transport', 'activities', 'shopping', 'flights', 'utilities', 'other'];
+export const CATEGORIES = ['accommodation', 'food', 'drinks', 'transport', 'activities', 'shopping', 'flights', 'rent', 'utilities', 'other'];
 
 export const CATEGORY_EMOJI = {
   accommodation: '🏨',
@@ -10,6 +10,7 @@ export const CATEGORY_EMOJI = {
   activities: '🎟️',
   shopping: '🛒',
   flights: '✈️',
+  rent: '🏠',
   utilities: '⚡',
   other: '💰'
 };
