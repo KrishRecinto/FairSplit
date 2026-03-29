@@ -16,6 +16,11 @@ const viewContainers = {
 
 let currentView = 'trips';
 let unsubTrips = null;
+let pendingJoinCode = null;
+
+export function setPendingJoin(code) {
+  pendingJoinCode = code;
+}
 
 // --- Theme ---
 
@@ -162,11 +167,13 @@ async function handleSignedIn(user, joinCode) {
   // Migrate any local trips to Firestore
   await store.migrateLocalTrips(user.uid);
 
-  // Handle join code if present
-  if (joinCode) {
+  // Handle join code if present (from URL or manual entry as guest)
+  const effectiveJoinCode = joinCode || pendingJoinCode;
+  if (pendingJoinCode) pendingJoinCode = null;
+  if (effectiveJoinCode) {
     window.history.replaceState({}, '', window.location.pathname);
     try {
-      const result = await store.joinTripByCode(joinCode);
+      const result = await store.joinTripByCode(effectiveJoinCode);
       if (result.success) {
         store.setActiveTrip(result.trip.id);
         loadingScreen.style.display = 'none';

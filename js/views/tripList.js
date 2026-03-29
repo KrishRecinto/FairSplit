@@ -2,7 +2,8 @@ import { el, clearEl } from '../utils/dom.js';
 import { createTrip, GROUP_TYPES } from '../models/trip.js';
 import { createPerson } from '../models/person.js';
 import * as store from '../models/store.js';
-import { promptSignIn } from '../app.js';
+import { promptSignIn, setPendingJoin } from '../app.js';
+import { signInAnonymously } from '../firebase.js';
 
 export function renderTripList(container, onTripSelected) {
   clearEl(container);
@@ -41,19 +42,12 @@ export function renderTripList(container, onTripSelected) {
   const joinBtn = el('button', {
     className: 'btn btn-secondary home-action-btn',
     textContent: 'Join Group',
-    onClick: async () => {
+    onClick: () => {
       if (activeForm === 'join') {
         clearEl(formContainer);
         activeForm = null;
         joinBtn.className = 'btn btn-secondary home-action-btn';
         return;
-      }
-      // Join requires sign-in
-      if (!store.isSignedIn()) {
-        joinBtn.textContent = 'Signing in...';
-        const success = await promptSignIn();
-        joinBtn.textContent = 'Join Group';
-        if (!success) return;
       }
       clearEl(formContainer);
       formContainer.appendChild(buildJoinForm(onTripSelected));
@@ -80,10 +74,22 @@ export function renderTripList(container, onTripSelected) {
 }
 
 function buildJoinForm(onTripSelected) {
+  const signedIn = store.isSignedIn();
+
   const form = el('div', { className: 'card' }, [
     el('div', { className: 'card-title', textContent: 'Join a Group' }),
-    el('p', { className: 'text-muted', style: { fontSize: '0.85rem', marginBottom: '10px' }, textContent: 'Enter a 6-character code shared by the group creator.' }),
+    el('p', { className: 'text-muted', style: { fontSize: '0.85rem', marginBottom: '10px' }, textContent: 'Enter the 6-character code from your invite.' }),
   ]);
+
+  // Name field for guests
+  let nameInput = null;
+  if (!signedIn) {
+    nameInput = el('input', { type: 'text', placeholder: 'Your name' });
+    form.appendChild(el('div', { className: 'form-group' }, [
+      el('label', { textContent: 'Your name' }),
+      nameInput
+    ]));
+  }
 
   const codeInput = el('input', {
     type: 'text',
@@ -92,7 +98,6 @@ function buildJoinForm(onTripSelected) {
     className: 'join-code-input',
     id: 'joinCode'
   });
-  // Auto uppercase
   codeInput.addEventListener('input', () => {
     codeInput.value = codeInput.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
   });
@@ -104,6 +109,37 @@ function buildJoinForm(onTripSelected) {
     textContent: 'Join Group',
     onClick: async () => {
       const code = codeInput.value.trim();
+
+      if (!store.isSignedIn()) {
+        const name = nameInput ? nameInput.value.trim() : '';
+        if (!name) {
+          joinMsg.textContent = 'Please enter your name.';
+          joinMsg.className = 'people-hint invalid';
+          if (nameInput) nameInput.focus();
+          return;
+        }
+        if (code.length !== 6) {
+          joinMsg.textContent = 'Please enter a 6-character code.';
+          joinMsg.className = 'people-hint invalid';
+          return;
+        }
+        joinBtn.disabled = true;
+        joinBtn.textContent = 'Joining...';
+        localStorage.setItem('fairsplit_guestName', name);
+        setPendingJoin(code);
+        try {
+          await signInAnonymously();
+          // onAuth fires → handleSignedIn picks up pendingJoinCode and navigates
+        } catch (err) {
+          console.error('Guest join error:', err);
+          joinMsg.textContent = 'Something went wrong. Please try again.';
+          joinMsg.className = 'people-hint invalid';
+          joinBtn.disabled = false;
+          joinBtn.textContent = 'Join Group';
+        }
+        return;
+      }
+
       if (code.length !== 6) {
         joinMsg.textContent = 'Please enter a 6-character code.';
         joinMsg.className = 'people-hint invalid';
@@ -119,13 +155,16 @@ function buildJoinForm(onTripSelected) {
         joinMsg.textContent = result.error;
         joinMsg.className = 'people-hint invalid';
         joinBtn.disabled = false;
-        joinBtn.textContent = 'Join Trip';
+        joinBtn.textContent = 'Join Group';
       }
     }
   });
 
   const row = el('div', { className: 'person-input-row' }, [codeInput, joinBtn]);
-  form.appendChild(row);
+  form.appendChild(el('div', { className: 'form-group' }, [
+    el('label', { textContent: 'Invite code' }),
+    row
+  ]));
   form.appendChild(joinMsg);
   return form;
 }
