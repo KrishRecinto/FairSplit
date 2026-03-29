@@ -79,43 +79,45 @@ function initAuth() {
     }
   });
 
-  // Check for ?join=CODE — this requires auth, so show guest join screen
   const joinCode = new URLSearchParams(window.location.search).get('join');
-  if (joinCode) {
-    loadingScreen.style.display = 'none';
-    content.style.display = 'none';
-    showGuestJoinScreen(joinCode);
-    // Also listen for auth to complete the join
-    onAuth(async (user) => {
-      if (user) {
-        await handleSignedIn(user, joinCode);
-      }
-    });
-    return;
-  }
+  let initialAuthDone = false;
 
-  // No join code — start in offline mode immediately, show the app
-  store.initOffline();
-  loadingScreen.style.display = 'none';
-  content.style.display = 'block';
-
-  const data = store.load();
-  if (data.activeTripId && data.trips.find(t => t.id === data.activeTripId)) {
-    enterTripMode(store.getActiveTrip());
-  } else {
-    showTripList();
-  }
-
-  // Listen for auth state changes (user signs in later, or was already signed in)
+  // Keep loading screen up until auth state is known — avoids flashing wrong screen.
+  // Firebase resolves from cache in < 100ms for signed-in users.
   onAuth(async (user) => {
-    if (user) {
-      await handleSignedIn(user);
+    if (!initialAuthDone) {
+      initialAuthDone = true;
+
+      if (user) {
+        // Already signed in — go straight to app, no flash of home/join screen
+        await handleSignedIn(user, joinCode);
+      } else if (joinCode) {
+        // Not signed in + join link — show guest join screen
+        loadingScreen.style.display = 'none';
+        content.style.display = 'none';
+        showGuestJoinScreen(joinCode);
+      } else {
+        // Not signed in, no join link — show offline app
+        store.initOffline();
+        loadingScreen.style.display = 'none';
+        content.style.display = 'block';
+        const data = store.load();
+        if (data.activeTripId && data.trips.find(t => t.id === data.activeTripId)) {
+          enterTripMode(store.getActiveTrip());
+        } else {
+          showTripList();
+        }
+      }
     } else {
-      // User signed out — switch back to offline mode
-      if (unsubTrips) { unsubTrips(); unsubTrips = null; }
-      userBtn.style.display = 'none';
-      store.initOffline();
-      showTripList();
+      // Subsequent auth changes (sign in / sign out after initial load)
+      if (user) {
+        await handleSignedIn(user);
+      } else {
+        if (unsubTrips) { unsubTrips(); unsubTrips = null; }
+        userBtn.style.display = 'none';
+        store.initOffline();
+        showTripList();
+      }
     }
   });
 }
