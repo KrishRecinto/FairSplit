@@ -18,7 +18,12 @@ function buildExpenseForm(trip, rootContainer) {
   card.innerHTML = `<div class="card-title" id="formTitle">Add Expense</div>`;
 
   const descInput = el('input', { type: 'text', placeholder: 'What was this for?', id: 'expDesc' });
+  const descError = el('div', { className: 'field-error', style: { display: 'none' }, textContent: 'Required' });
+  descInput.addEventListener('input', () => { descError.style.display = 'none'; descInput.classList.remove('input-error'); });
+
   const amountInput = el('input', { type: 'number', placeholder: '0.00', step: '0.01', min: '0', id: 'expAmount' });
+  const amountError = el('div', { className: 'field-error', style: { display: 'none' }, textContent: 'Required' });
+  amountInput.addEventListener('input', () => { amountError.style.display = 'none'; amountInput.classList.remove('input-error'); });
   const dateInput = el('input', { type: 'date', value: todayStr(), id: 'expDate' });
   const categorySelect = el('select', { id: 'expCategory' });
   CATEGORIES.forEach(c => {
@@ -32,12 +37,12 @@ function buildExpenseForm(trip, rootContainer) {
   });
 
   card.appendChild(el('div', { className: 'form-group' }, [
-    el('label', { textContent: 'Description' }), descInput
+    el('label', { textContent: 'Description' }), descInput, descError
   ]));
 
   card.appendChild(el('div', { className: 'form-row' }, [
     el('div', { className: 'form-group' }, [
-      el('label', { textContent: `Amount (${trip.currency})` }), amountInput
+      el('label', { textContent: `Amount (${trip.currency})` }), amountInput, amountError
     ]),
     el('div', { className: 'form-group' }, [
       el('label', { innerHTML: 'Date <span style="color:var(--text-muted);font-weight:400;font-size:0.8rem">(optional)</span>' }), dateInput
@@ -120,8 +125,20 @@ function buildExpenseForm(trip, rootContainer) {
     onClick: () => {
       const desc = descInput.value.trim();
       const amount = parseFloat(amountInput.value);
-      if (!desc) { descInput.focus(); return; }
-      if (!amount || amount <= 0) { amountInput.focus(); return; }
+      let hasError = false;
+      if (!desc) {
+        descError.style.display = 'block';
+        descInput.classList.add('input-error');
+        descInput.focus();
+        hasError = true;
+      }
+      if (!amount || amount <= 0) {
+        amountError.style.display = 'block';
+        amountInput.classList.add('input-error');
+        if (!hasError) amountInput.focus();
+        hasError = true;
+      }
+      if (hasError) return;
 
       const splits = getSplitsFromInputs(splitContainer, trip, splitType, amountInput);
       if (!splits) return;
