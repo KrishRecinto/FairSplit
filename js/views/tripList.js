@@ -41,7 +41,7 @@ export function renderTripList(container, onTripSelected) {
 
   const createBtn = el('button', {
     className: 'btn btn-primary home-action-btn',
-    textContent: 'Create a Group',
+    textContent: 'New Group',
     onClick: () => {
       if (activeForm === 'create') {
         clearEl(formContainer);
@@ -59,7 +59,7 @@ export function renderTripList(container, onTripSelected) {
 
   const joinBtn = el('button', {
     className: 'btn btn-secondary home-action-btn',
-    textContent: 'Join a Group',
+    textContent: 'Join Group',
     onClick: async () => {
       if (activeForm === 'join') {
         clearEl(formContainer);
@@ -71,7 +71,7 @@ export function renderTripList(container, onTripSelected) {
       if (!store.isSignedIn()) {
         joinBtn.textContent = 'Signing in...';
         const success = await promptSignIn();
-        joinBtn.textContent = 'Join a Group';
+        joinBtn.textContent = 'Join Group';
         if (!success) return;
       }
       clearEl(formContainer);
