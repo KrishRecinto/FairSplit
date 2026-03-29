@@ -131,11 +131,13 @@ function renderReceipt(container, trip) {
     settlements.forEach(s => {
       const card = el('div', { className: 'settle-hero-card' });
       const paidBtn = el('button', {
-        className: 'btn btn-success btn-sm',
-        textContent: 'Paid',
+        className: 'btn btn-primary btn-sm',
+        textContent: 'Mark Paid',
         onClick: () => {
           card.classList.toggle('paid');
-          paidBtn.textContent = card.classList.contains('paid') ? 'Undo' : 'Paid';
+          const isPaid = card.classList.contains('paid');
+          paidBtn.textContent = isPaid ? 'Undo' : 'Mark Paid';
+          paidBtn.className = isPaid ? 'btn btn-secondary btn-sm' : 'btn btn-primary btn-sm';
         }
       });
 
